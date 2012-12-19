@@ -17,6 +17,8 @@ import org.moqui.entity.EntityFind
 import org.moqui.impl.entity.EntityFindImpl
 import org.moqui.entity.EntityValue
 import org.moqui.impl.entity.EntityValueImpl
+import org.moqui.impl.entity.dynamodb.DynamoDBEntityValue
+import org.moqui.impl.entity.dynamodb.DynamoDBEntityFind
 
 import javax.sql.DataSource
 
@@ -81,20 +83,22 @@ class DynamoDBDatasourceFactory implements EntityDatasourceFactory {
 
         Node inlineOtherNode = datasourceNode."inline-other"[0]
 
-        Properties moquiInitProperties = new Properties()
-        URL initProps = this.class.getClassLoader().getResource("MoquiInit.properties")
-        if (initProps != null) { InputStream is = initProps.openStream(); moquiInitProperties.load(is); is.close(); }
+        //Properties moquiInitProperties = new Properties()
+        //URL initProps = this.class.getClassLoader().getResource("MoquiInit.properties")
+        //if (initProps != null) { InputStream is = initProps.openStream(); moquiInitProperties.load(is); is.close(); }
 
         // if there is a system property use that, otherwise from the properties file
         
-        accessKey = System.getProperty("moqui.accessKey")
+        accessKey = System.getProperty("dynamodb.accessKey")
         if(!accessKey) {
-            accessKey = moquiInitProperties.getProperty("moqui.accessKey")
+           // accessKey = moquiInitProperties.getProperty("moqui.accessKey")
+            accessKey = inlineOtherNode."@dynamodb-accessKey"
         }
 
-        secretAccessKey = System.getProperty("moqui.secretAccessKey")
+        secretAccessKey = System.getProperty("dynamodb.secretAccessKey")
         if(!secretAccessKey) {
-            secretAccessKey = moquiInitProperties.getProperty("moqui.secretAccessKey")
+            //secretAccessKey = moquiInitProperties.getProperty("moqui.secretAccessKey")
+            secretAccessKey = inlineOtherNode."@dynamodb-secretAccessKey"
         }
 
         BasicAWSCredentials credentials = new BasicAWSCredentials(accessKey, secretAccessKey);
@@ -125,7 +129,7 @@ class DynamoDBDatasourceFactory implements EntityDatasourceFactory {
 
     @Override
     EntityFind makeEntityFind(String entityName) {
-        return new EntityFindImpl(efi, entityName, this)
+        return new DynamoDBEntityFind(efi, entityName, this)
     }
     @Override
     DataSource getDataSource() { return null }

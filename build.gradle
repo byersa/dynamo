@@ -136,8 +136,8 @@ test {
     systemProperty 'moqui.runtime', '../..'
     systemProperty 'moqui.conf', 'conf/MoquiDevConf.xml'
     systemProperty 'moqui.init.static', 'true'
-    systemProperty 'moqui.accessKey', 'AKIAIBRXVHUM37OTC4MQ'
-    systemProperty 'moqui.secretAccessKey', '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'
+    //systemProperty 'dynamodb.accessKey', 'AKIAIBRXVHUM37OTC4MQ'
+    //systemProperty 'dynamodb.secretAccessKey', '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'
 
     testLogging.showStandardStreams = true
 

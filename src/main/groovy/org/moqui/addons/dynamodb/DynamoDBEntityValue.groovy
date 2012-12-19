@@ -21,6 +21,13 @@ import org.moqui.impl.entity.EntityFacadeImpl
 import org.moqui.impl.entity.EntityValueBase
 import org.moqui.impl.entity.EntityValueImpl
 import org.moqui.entity.EntityValue
+import org.moqui.entity.EntityFind
+import org.moqui.impl.entity.dynamodb.DynamoDBEntityConditionFactoryImpl
+import org.moqui.impl.entity.dynamodb.condition.DynamoDBEntityConditionImplBase
+import org.moqui.impl.entity.dynamodb.DynamoDBDatasourceFactory
+import org.moqui.impl.entity.dynamodb.DynamoDBEntityFind
+import org.moqui.impl.entity.dynamodb.DynamoDBUtils
+
 import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
 import com.amazonaws.services.dynamodb.model.AttributeAction
 import com.amazonaws.services.dynamodb.model.AttributeValue
@@ -51,35 +58,37 @@ import org.moqui.impl.entity.dynamodb.DynamoDBDatasourceFactory
 class DynamoDBEntityValue extends EntityValueBase {
     protected final static org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DynamoDBEntityValue.class)
 
-    DynamoDBDatasourceFactory ddf
+    protected DynamoDBDatasourceFactory ddf
+    protected DynamoDBEntityConditionFactoryImpl conditionFactory 
 
     DynamoDBEntityValue(EntityDefinition ed, EntityFacadeImpl efip, DynamoDBDatasourceFactory ddf) {
         super(ed, efip)
+        this.conditionFactory = new DynamoDBEntityConditionFactoryImpl(efip)
         this.ddf = ddf
     }
 
-    DynamoDBEntityValue(EntityDefinition ed, EntityFacadeImpl efip, DynamoDBDatasourceFactory ddf, Map document) {
+    DynamoDBEntityValue(EntityDefinition ed, EntityFacadeImpl efip, DynamoDBDatasourceFactory ddf, Map valMap) {
         super(ed, efip)
         this.ddf = ddf
         for (String fieldName in ed.getAllFieldNames()) {
-            getValueMap().put(fieldName, document.field(ed.getColumnName(fieldName, false)))
+            this.getValueMap().put(fieldName, valMap.field(ed.getColumnName(fieldName, false)))
         }
     }
 
     @Override
     void createExtended(ListOrderedSet fieldList) {
     
-        logger.info("In DynamoDBEntityValue, fieldList: ${fieldList}")
-        EntityDefinition ed = getEntityDefinition()
-        if (ed.isViewEntity()) throw new EntityException("Create not yet implemented for view-entity")
+        EntityDefinition entityDefinition = getEntityDefinition()
+        logger.info("In DynamoDBEntityValue.create, fieldList: ${fieldList}")
+        if (entityDefinition.isViewEntity()) throw new EntityException("Create not yet implemented for view-entity")
 
         AmazonDynamoDBClient client = ddf.getDatabase()
         Map<String, AttributeValue> item = new HashMap<String, AttributeValue>()
         try {
-        logger.info("In DynamoDBEntityValue, valueMap: ${this.getValueMap()}")
+        logger.info("In DynamoDBEntityValue.create, valueMap: ${this.getValueMap()}")
             this.buildAttributeValueMap(item, this.getValueMap());
-        logger.info("In DynamoDBEntityValue, item: ${item}")
-            PutItemRequest putItemRequest = new PutItemRequest().withTableName(ed.getEntityName()).withItem(item);
+        logger.info("In DynamoDBEntityValue.create, item: ${item}")
+            PutItemRequest putItemRequest = new PutItemRequest().withTableName(entityDefinition.getEntityName()).withItem(item);
             PutItemResult result = client.putItem(putItemRequest)     
         } catch(ProvisionedThroughputExceededException e1) {
             throw new EntityException(e1.getMessage())
@@ -99,36 +108,41 @@ class DynamoDBEntityValue extends EntityValueBase {
 
     @Override
     void updateExtended(List<String> pkFieldList, ListOrderedSet nonPkFieldList) {
-        EntityDefinition ed = getEntityDefinition()
-        if (ed.isViewEntity()) throw new EntityException("Update not yet implemented for view-entity")
+    
+        logger.info("DynamoDBEntityValue.updateExtended (111), this: ${this.toString()}")
+        EntityDefinition entityDefinition = getEntityDefinition()
+        if (entityDefinition.isViewEntity()) throw new EntityException("Update not yet implemented for view-entity")
 
-        AmazonDynamoDBClient client = ddf.getDatabase()
-        Map<String, AttributeValue> item = new HashMap<String, AttributeValue>()
+        logger.info("DynamoDBEntityValue.updateExtended, valueMap: ${this.getValueMap()}")
+        DynamoDBEntityConditionImplBase whereCondition
+        if (entityDefinition.containsPrimaryKey(this.getValueMap())) {
+            whereCondition = (DynamoDBEntityConditionImplBase) this.conditionFactory.makeCondition(this.getValueMap())
+        } else {
+            throw(new EntityException("In update, primary key not contained in ${this.getValueMap()}"))
+        }
+
+
+        DynamoDBEntityValue entValue = null
         try {
-            buildAttributeValueMap(item, valueMap);
-            String entName = ed.getEntityName()
+            String entName = entityDefinition.getEntityName()
             Key key = new Key()
-            Map<String, Object>primaryKeyMap = getPrimaryKeys()
-            if (primaryKeyMap && primaryKeyMap.keySet().size()) {
-                for(String primaryKeyName in primaryKeyMap) {
-                    AttributeValue keyAttributeValue = getAttributeValue(primaryKeyName)
-                    key.setHashKeyElement(keyAttributeValue)
-                    break;
-                }
+            AttributeValue attrVal = whereCondition.getDynamoDBHashValue(entityDefinition)
+            if (attrVal) {
+                key.setHashKeyElement(attrVal)
             } else {
-                throw new EntityException("Entity '${entName}' does not have a primary key defined.")
+                throw(new EntityException("In update, the condition ${whereCondition} for the entity: ${entName} does not specify a value for the primary key."))
             }
-            
-            // see if there is a range key defined as a field with the index defined
-            List<Node> fieldNodes = getFieldNodes(false, true, false)
-            for (Node nd in fieldNodes) {
-                if (nd."@index") {
-                    AttributeValue keyAttributeValue = getAttributeValue(nd."@field")
-                    key.setRangeKeyElement(keyAttributeValue)
-                    break;
-                }
+            AttributeValue attrVal2 = whereCondition.getDynamoDBRangeValue(entityDefinition)
+            // TODO: check to see if entity requires a range value to define the primary key
+            if (attrVal2) {
+                key.setRangeKeyElement(attrVal2)
             }
-            UpdateItemRequest updateItemRequest = new UpdateItemRequest().withTableName(entName).withKey(key).withItem(item);
+        AmazonDynamoDBClient client = ddf.getDatabase()
+        Map<String, AttributeValueUpdate> item = new HashMap<String, AttributeValueUpdate>()
+        logger.info("In DynamoDBEntityValue.update, valueMap: ${this.getValueMap()}")
+            this.buildAttributeValueUpdateMap(item, this.getValueMap());
+        logger.info("In DynamoDBEntityValue.update, item: ${item}")
+            UpdateItemRequest updateItemRequest = new UpdateItemRequest().withTableName(entName).withKey(key).withAttributeUpdates(item);
             UpdateItemResult result = client.updateItem(updateItemRequest)     
         } catch(ProvisionedThroughputExceededException e1) {
             throw new EntityException(e1.getMessage())
@@ -148,35 +162,36 @@ class DynamoDBEntityValue extends EntityValueBase {
 
     @Override
     void deleteExtended() {
-        EntityDefinition ed = getEntityDefinition()
-        if (ed.isViewEntity()) throw new EntityException("Delete not implemented for view-entity")
+        EntityDefinition entityDefinition = getEntityDefinition()
+        if (entityDefinition.isViewEntity()) throw new EntityException("Update not yet implemented for view-entity")
 
-        AmazonDynamoDBClient client = ddf.getDatabase()
+        logger.info("DynamoDBEntityFind.one (73), simpleAndMap: ${this.getValueMap()}")
+        DynamoDBEntityConditionImplBase whereCondition
+        if (entityDefinition.containsPrimaryKey(this.getValueMap())) {
+            whereCondition = (DynamoDBEntityConditionImplBase) this.conditionFactory.makeCondition(this.getValueMap())
+        } else {
+            throw(new EntityException("In update, primary key not contained in ${this.getValueMap()}"))
+        }
+
+
+        DynamoDBEntityValue entValue = null
         try {
-            String entName = ed.getEntityName()
+            String entName = entityDefinition.getEntityName()
             Key key = new Key()
-            Map<String, Object>primaryKeyMap = getPrimaryKeys()
-            if (primaryKeyMap && primaryKeyMap.keySet().size()) {
-                for(String primaryKeyName in primaryKeyMap) {
-                    AttributeValue keyAttributeValue = getAttributeValue(primaryKeyName)
-                    key.setHashKeyElement(keyAttributeValue)
-                    break;
-                }
+            AttributeValue attrVal = whereCondition.getDynamoDBHashValue(entityDefinition)
+            if (attrVal) {
+                key.setHashKeyElement(attrVal)
             } else {
-                throw new EntityException("Entity '${entName}' does not have a primary key defined.")
+                throw(new EntityException("In update, the condition ${whereCondition} for the entity: ${entName} does not specify a value for the primary key."))
             }
-            
-            // see if there is a range key defined as a field with the index defined
-            List<Node> fieldNodes = getFieldNodes(false, true, false)
-            for (Node nd in fieldNodes) {
-                if (nd."@index") {
-                    AttributeValue keyAttributeValue = getAttributeValue(nd."@field")
-                    key.setRangeKeyElement(keyAttributeValue)
-                    break;
-                }
+            AttributeValue attrVal2 = whereCondition.getDynamoDBRangeValue(entityDefinition)
+            // TODO: check to see if entity requires a range value to define the primary key
+            if (attrVal2) {
+                key.setRangeKeyElement(attrVal2)
             }
+            AmazonDynamoDBClient client = ddf.getDatabase()
             DeleteItemRequest deleteItemRequest = new DeleteItemRequest().withTableName(entName).withKey(key);
-            DeleteItemResult result = client.updateItem(deleteItemRequest)     
+            DeleteItemResult result = client.deleteItem(deleteItemRequest)     
         } catch(ProvisionedThroughputExceededException e1) {
             throw new EntityException(e1.getMessage())
         } catch(ConditionalCheckFailedException e2) {
@@ -195,12 +210,16 @@ class DynamoDBEntityValue extends EntityValueBase {
 
     @Override
     boolean refreshExtended() {
-        EntityDefinition ed = getEntityDefinition()
 
         AmazonDynamoDBClient client = ddf.getDatabase()
         try {
-            String entName = ed.getEntityName()
+            EntityFind entityFind = efi.makeFind(entityName)
+            EntityValue newValue = entityFind.condition(this.getValueMap()).one()
+            this.setAll(newValue)
+            return !!newValue
+            /*
             Key key = new Key()
+            
             Map<String, Object>primaryKeyMap = getPrimaryKeys()
             if (primaryKeyMap && primaryKeyMap.keySet().size()) {
                 for(String primaryKeyName in primaryKeyMap) {
@@ -209,7 +228,7 @@ class DynamoDBEntityValue extends EntityValueBase {
                     break;
                 }
             } else {
-                throw new EntityException("Entity '${entName}' does not have a primary key defined.")
+                throw new EntityException("Entity '${entityName}' does not have a primary key defined.")
             }
             
             // see if there is a range key defined as a field with the index defined
@@ -221,11 +240,12 @@ class DynamoDBEntityValue extends EntityValueBase {
                     break;
                 }
             }
-            GetItemRequest getItemRequest = new GetItemRequest().withTableName(entName).withKey(key).withItem(item);
+            GetItemRequest getItemRequest = new GetItemRequest().withTableName(entityName).withKey(key).withItem(item);
             GetItemResult result = client.getItem(getItemRequest)     
             
             java.util.Map<java.lang.String,AttributeValue> returnAttributeValueMap = result.getItem()
             buildEntityValueMap(returnAttributeValueMap)
+            */
         } catch(ProvisionedThroughputExceededException e1) {
             throw new EntityException(e1.getMessage())
         } catch(ConditionalCheckFailedException e2) {
@@ -243,10 +263,27 @@ class DynamoDBEntityValue extends EntityValueBase {
     }
     
     void buildAttributeValueMap( Map<String, AttributeValue> item, Map<String, Object> valueMap) {
-        EntityDefinition ed = this.getEntityDefinition()
-        ListOrderedSet fieldNames = ed.getFieldNames(true, true, true)
+        EntityDefinition entityDefinition = getEntityDefinition()
+        ListOrderedSet fieldNames = entityDefinition.getFieldNames(true, true, true)
         for(String fieldName in fieldNames) {
-            AttributeValue attrVal = getAttributeValue(fieldName)
+            AttributeValue attrVal = DynamoDBUtils.getAttributeValue(fieldName, valueMap, entityDefinition)
+                 logger.info("DynamoDBEntityValue.buildAttributeValueMap(250) attrVal: ${attrVal}")
+            if (attrVal != null) {
+                 logger.info("DynamoDBEntityValue.buildAttributeValueMap(252) fieldName: ${fieldName}, attrVal: ${attrVal}")
+                item.put(fieldName, attrVal)
+            } else {
+                 logger.info("DynamoDBEntityValue.buildAttributeValueMap(remove - 255) fieldName: ${fieldName}")
+                item.remove(fieldName)
+            }
+        }
+        
+    }
+    
+    void buildAttributeValueUpdateMap( Map<String, AttributeValueUpdate> item, Map<String, Object> valueMap) {
+        EntityDefinition entityDefinition = getEntityDefinition()
+        ListOrderedSet fieldNames = entityDefinition.getFieldNames(true, true, true)
+        for(String fieldName in fieldNames) {
+            AttributeValueUpdate attrVal = DynamoDBUtils.getAttributeValueUpdate(fieldName, valueMap, entityDefinition)
                  logger.info("DynamoDBEntityValue.buildAttributeValueMap(250) attrVal: ${attrVal}")
             if (attrVal != null) {
                  logger.info("DynamoDBEntityValue.buildAttributeValueMap(252) fieldName: ${fieldName}, attrVal: ${attrVal}")
@@ -261,9 +298,16 @@ class DynamoDBEntityValue extends EntityValueBase {
     
     void buildEntityValueMap( Map<String, EntityValue> attributeValueItem) {
     
-        for(String fieldName in attributeValueItem) {
+        String fieldName, fieldType
+        AttributeValue attrVal
+        def tm, num
+        for(Map.Entry fieldEntry in attributeValueItem) {
+            fieldName = fieldEntry.key
+                 logger.info("DynamoDBEntityValue.buildEntityValueMap(280) fieldName: ${fieldName}")
             Node fieldNode = this.getEntityDefinition().getFieldNode(fieldName)
-            switch(fieldNode."@type") {
+            fieldType = fieldNode."@type"
+                 logger.info("DynamoDBEntityValue.buildEntityValueMap(282) type: ${fieldType}")
+            switch(fieldType) {
                 case "id":
                 case "id-long":
                 case "text-short":
@@ -272,26 +316,42 @@ class DynamoDBEntityValue extends EntityValueBase {
                 case "text-very-long":
                 case "text-indicator":
                      this.set(fieldName, attributeValueItem[fieldName].getS())
+                     break
                 case "number-integer":
                 case "number-decimal":
                 case "number-float":
                 case "currency-amount":
                 case "currency-precise":
                 case "time":
-                     this.set(fieldName, attributeValueItem[fieldName].getN())
+                     attrVal = attributeValueItem[fieldName]
+                     num = attrVal.getN()
+                     this.set(fieldName, Long.parseLong(num))
+                     break
                 case "date":
-                     tm = attributeValueItem[fieldName].getN()
-                     this.set(fieldName,  new Date(tm))
+                     attrVal = attributeValueItem[fieldName]
+                 logger.info("DynamoDBEntityValue.buildEntityValueMap(300) attrVal: ${attrVal}")
+                     tm = attrVal.getN()
+                     Date dt = new Date(tm)
+                 logger.info("DynamoDBEntityValue.buildEntityValueMap(303) tm: ${tm}, dt: ${dt}")
+                     this.set(fieldName, dt )
+                     break
                 case "date-time":
-                     tm = attributeValueItem[fieldName].getN()
-                     this.set(fieldName, new Timestamp(tm))
+                     attrVal = attributeValueItem[fieldName]
+                 logger.info("DynamoDBEntityValue.buildEntityValueMap(313) attrVal: ${attrVal}")
+                     tm = attrVal.getS()
+                 logger.info("DynamoDBEntityValue.buildEntityValueMap(315) tm: ${tm}")
+                     Timestamp ts = Timestamp.valueOf(tm)
+                 logger.info("DynamoDBEntityValue.buildEntityValueMap(317) ts: ${ts}")
+                     this.set(fieldName, ts )
+                     break
                 default:
                      this.set(fieldName, null)
             }
         }
         
     }
-    
+
+/*
     AttributeValue getAttributeValue(fieldName) {
     
         AttributeValue attrVal = new AttributeValue()
@@ -343,6 +403,6 @@ class DynamoDBEntityValue extends EntityValueBase {
         
         return attrVal
     }
-    
+*/    
     
 }
