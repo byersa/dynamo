@@ -36,7 +36,7 @@ dependencies {
 
     compile name: 'groovy-all', version: '2.0.5' // Apache 2.0
 
-    compile name: 'moqui-framework', version: '1.2.0' // Apache 2.0
+    compile name: 'moqui-framework', version: '1.2.1' // Apache 2.0
 
     compile name: 'antisamy', version: '1.4' // New BSD
 
@@ -62,7 +62,7 @@ dependencies {
 
     compile name: 'ehcache-core', version: '2.6.0' // Apache 2.0
     compile name: 'winstone', version: '0.9.10' // CDDL
-    compile name: 'esapi', version: '2.0GA' // New BSD
+    compile name: 'esapi', version: '2.0.1' // New BSD
     compile name: 'freemarker', version: '2.3.19' // BSD
 
     compile name: 'geronimo-j2ee-connector_1.5_spec', version: '' // Apache 2.0
@@ -131,6 +131,7 @@ dependencies {
 
 // by default the Java plugin runs test on build, change to not do that (only run test if explicit task)
 check.dependsOn.remove('test')
+build.dependsOn.remove('test')
 
 test {
     systemProperty 'moqui.runtime', '../..'
@@ -154,7 +155,7 @@ test {
 jar {
     // this is necessary otherwise jar won't build when war plugin is applied
     enabled = true
-    appendix = 'runtime'
+    appendix = 'dynamodb'
     manifest { attributes 'Implementation-Title': 'DynamoDB Entity', 'Implementation-Version': '1.0.0' }
     from sourceSets.main.output
 }
