@@ -61,9 +61,13 @@ class DynamoDBUtils {
             case "date-time":
                  String dateTimeStr = valueMap.get(fieldName)
                  logger.info("DynamoDBUtils(310) dateTimeStr: ${dateTimeStr}")
-                 Timestamp ts = Timestamp.valueOf(dateTimeStr)
-                 logger.info("DynamoDBUtils(312) ts: ${ts.toString()}")
-                 attrVal.setS(ts.toString())
+                 if (dateTimeStr != null) {
+                     Timestamp ts = Timestamp.valueOf(dateTimeStr)
+                     logger.info("DynamoDBUtils(312) ts: ${ts.toString()}")
+                     attrVal.setS(ts.toString())
+                 } else {
+                     return null
+                 }
                  break
             default:
                  String val = valueMap.get(fieldName)?: ""
