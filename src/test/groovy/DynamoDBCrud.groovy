@@ -45,7 +45,7 @@ class DynamoDBCrud extends Specification {
     }
 
     def cleanupSpec() {
-        ec.artifactExecution.disableAuthz()
+        ec.artifactExecution.enableAuthz()
         ec.entity.makeFind("Property").condition([partyId:"TEST5", propertyId:"2012-12-12 00:00:00"]).one().delete()
         ec.entity.makeFind("Property").condition([partyId:"TEST5", propertyId:"2012-12-13 00:00:00"]).one().delete()
         ec.entity.makeFind("Property").condition([partyId:"TEST5", propertyId:"2012-12-14 00:00:00"]).one().delete()
