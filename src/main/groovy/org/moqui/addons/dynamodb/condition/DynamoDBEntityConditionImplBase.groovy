@@ -14,8 +14,8 @@ package org.moqui.impl.entity.dynamodb.condition
 import org.moqui.impl.entity.dynamodb.DynamoDBEntityConditionFactoryImpl
 import org.moqui.entity.EntityCondition
 import org.moqui.impl.entity.EntityQueryBuilder
-import com.amazonaws.services.dynamodb.model.AttributeValue
-import com.amazonaws.services.dynamodb.model.Condition
+import com.amazonaws.services.dynamodbv2.model.AttributeValue
+import com.amazonaws.services.dynamodbv2.model.Condition
 
 abstract class DynamoDBEntityConditionImplBase implements EntityCondition {
     DynamoDBEntityConditionFactoryImpl ecFactoryImpl
@@ -36,4 +36,8 @@ abstract class DynamoDBEntityConditionImplBase implements EntityCondition {
     Map <String, Condition> getDynamoDBScanConditionMap() {
         return null;
     }
+
+   @Override
+    boolean populateMap(Map<String, ?> map) { return false }
+ 
 }

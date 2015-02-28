@@ -15,8 +15,8 @@ import org.moqui.entity.EntityCondition
 import java.sql.Timestamp
 import org.moqui.impl.entity.dynamodb.DynamoDBEntityConditionFactoryImpl
 import org.moqui.impl.entity.EntityQueryBuilder
-import com.amazonaws.services.dynamodb.model.AttributeValue
-import com.amazonaws.services.dynamodb.model.Condition
+import com.amazonaws.services.dynamodbv2.model.AttributeValue
+import com.amazonaws.services.dynamodbv2.model.Condition
 
 class DynamoDBDateCondition extends DynamoDBEntityConditionImplBase {
     protected String fromFieldName

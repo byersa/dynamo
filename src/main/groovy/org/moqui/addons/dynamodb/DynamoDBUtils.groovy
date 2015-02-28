@@ -7,11 +7,11 @@ import org.moqui.entity.EntityCondition
 import org.moqui.entity.EntityCondition.ComparisonOperator.*
 import org.moqui.impl.entity.dynamodb.condition.DynamoDBEntityConditionImplBase
 
-import com.amazonaws.services.dynamodb.model.AttributeValue
-import com.amazonaws.services.dynamodb.model.AttributeValueUpdate
-import com.amazonaws.services.dynamodb.model.AttributeAction
-import com.amazonaws.services.dynamodb.model.Condition
-import com.amazonaws.services.dynamodb.model.ComparisonOperator
+import com.amazonaws.services.dynamodbv2.model.AttributeValue
+import com.amazonaws.services.dynamodbv2.model.AttributeValueUpdate
+import com.amazonaws.services.dynamodbv2.model.AttributeAction
+import com.amazonaws.services.dynamodbv2.model.Condition
+import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
 
 class DynamoDBUtils {
 
@@ -151,40 +151,53 @@ class DynamoDBUtils {
         return attrVal
     }
     
-    static com.amazonaws.services.dynamodb.model.ComparisonOperator  getComparisonOperator(EntityCondition.ComparisonOperator op) {
-        com.amazonaws.services.dynamodb.model.ComparisonOperator retOp = null
+    static com.amazonaws.services.dynamodbv2.model.ComparisonOperator  getComparisonOperator(EntityCondition.ComparisonOperator op) {
+        com.amazonaws.services.dynamodbv2.model.ComparisonOperator retOp = null
         switch(op) {
             case EntityCondition.EQUALS:
-                retOp = com.amazonaws.services.dynamodb.model.ComparisonOperator.EQ
+                retOp = com.amazonaws.services.dynamodbv2.model.ComparisonOperator.EQ
                 break
             case EntityCondition.LESS_THAN:
-                retOp = com.amazonaws.services.dynamodb.model.ComparisonOperator.LT
+                retOp = com.amazonaws.services.dynamodbv2.model.ComparisonOperator.LT
                 break
             case EntityCondition.GREATER_THAN:
-                retOp = com.amazonaws.services.dynamodb.model.ComparisonOperator.GT
+                retOp = com.amazonaws.services.dynamodbv2.model.ComparisonOperator.GT
                 break
             case EntityCondition.LESS_THAN_EQUAL_TO:
-                retOp = com.amazonaws.services.dynamodb.model.ComparisonOperator.LE
+                retOp = com.amazonaws.services.dynamodbv2.model.ComparisonOperator.LE
                 break
             case EntityCondition.GREATER_THAN_EQUAL_TO:
-                retOp = com.amazonaws.services.dynamodb.model.ComparisonOperator.GE
+                retOp = com.amazonaws.services.dynamodbv2.model.ComparisonOperator.GE
                 break
             case EntityCondition.IN:
-                retOp = com.amazonaws.services.dynamodb.model.ComparisonOperator.CONTAINS
+                retOp = com.amazonaws.services.dynamodbv2.model.ComparisonOperator.CONTAINS
                 break
             case EntityCondition.NOT_IN:
-                retOp = com.amazonaws.services.dynamodb.model.ComparisonOperator.NOT_CONTAINS
+                retOp = com.amazonaws.services.dynamodbv2.model.ComparisonOperator.NOT_CONTAINS
                 break
             case EntityCondition.LIKE:
-                retOp = com.amazonaws.services.dynamodb.model.ComparisonOperator.BEGINS_WITH
+                retOp = com.amazonaws.services.dynamodbv2.model.ComparisonOperator.BEGINS_WITH
                 break
             case EntityCondition.BETWEEN:
-                retOp = com.amazonaws.services.dynamodb.model.ComparisonOperator.BETWEEN
+                retOp = com.amazonaws.services.dynamodbv2.model.ComparisonOperator.BETWEEN
                 break
             default:
-                retOp = com.amazonaws.services.dynamodb.model.ComparisonOperator.EQ
+                retOp = com.amazonaws.services.dynamodbv2.model.ComparisonOperator.EQ
                 break
         }
 
+    }
+
+    static String getRangeFieldName(EntityDefinition ed) {
+        
+        String rangeFieldName
+        List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
+            for (Node nd in fieldNodes) {
+                if (nd."@is-range" == "true") {
+                    rangeFieldName = nd."@name"
+                    break
+                }
+            }
+        return rangeFieldName
     }
 }

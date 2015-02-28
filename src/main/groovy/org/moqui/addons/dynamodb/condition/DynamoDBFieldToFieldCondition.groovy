@@ -15,8 +15,8 @@ import org.moqui.entity.EntityCondition
 import org.moqui.impl.entity.EntityQueryBuilder
 import org.moqui.impl.entity.EntityConditionFactoryImpl
 import org.moqui.impl.entity.condition.FieldToFieldCondition
-import com.amazonaws.services.dynamodb.model.AttributeValue
-import com.amazonaws.services.dynamodb.model.Condition
+import com.amazonaws.services.dynamodbv2.model.AttributeValue
+import com.amazonaws.services.dynamodbv2.model.Condition
 
 class DynamoDBFieldToFieldCondition extends FieldToFieldCondition {
 

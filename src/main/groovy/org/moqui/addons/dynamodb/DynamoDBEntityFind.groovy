@@ -34,30 +34,31 @@ import org.moqui.impl.entity.dynamodb.DynamoDBEntityValue
 import org.moqui.impl.entity.dynamodb.DynamoDBEntityFindBase
 import org.moqui.impl.context.ExecutionContextFactoryImpl
 
-import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
-import com.amazonaws.services.dynamodb.model.AttributeAction
-import com.amazonaws.services.dynamodb.model.AttributeValue
-import com.amazonaws.services.dynamodb.model.AttributeValueUpdate
-import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException
-import com.amazonaws.services.dynamodb.model.DeleteItemRequest
-import com.amazonaws.services.dynamodb.model.DeleteItemResult
-import com.amazonaws.services.dynamodb.model.ExpectedAttributeValue
-import com.amazonaws.services.dynamodb.model.GetItemRequest
-import com.amazonaws.services.dynamodb.model.GetItemResult
-import com.amazonaws.services.dynamodb.model.Key
-import com.amazonaws.services.dynamodb.model.PutItemRequest
-import com.amazonaws.services.dynamodb.model.PutItemResult
-import com.amazonaws.services.dynamodb.model.ReturnValue
-import com.amazonaws.services.dynamodb.model.UpdateItemRequest
-import com.amazonaws.services.dynamodb.model.UpdateItemResult
-import com.amazonaws.services.dynamodb.model.QueryRequest
-import com.amazonaws.services.dynamodb.model.QueryResult
-import com.amazonaws.services.dynamodb.model.Condition
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
+import com.amazonaws.services.dynamodbv2.model.AttributeAction
+import com.amazonaws.services.dynamodbv2.model.AttributeValue
+import com.amazonaws.services.dynamodbv2.model.AttributeValueUpdate
+import com.amazonaws.services.dynamodbv2.model.ConditionalCheckFailedException
+import com.amazonaws.services.dynamodbv2.model.DeleteItemRequest
+import com.amazonaws.services.dynamodbv2.model.DeleteItemResult
+import com.amazonaws.services.dynamodbv2.model.ExpectedAttributeValue
+import com.amazonaws.services.dynamodbv2.model.GetItemRequest
+import com.amazonaws.services.dynamodbv2.model.GetItemResult
+//import com.amazonaws.services.dynamodbv2.model.Key
+import com.amazonaws.services.dynamodbv2.model.PutItemRequest
+import com.amazonaws.services.dynamodbv2.model.PutItemResult
+import com.amazonaws.services.dynamodbv2.model.ReturnValue
+import com.amazonaws.services.dynamodbv2.model.UpdateItemRequest
+import com.amazonaws.services.dynamodbv2.model.UpdateItemResult
+import com.amazonaws.services.dynamodbv2.model.QueryRequest
+import com.amazonaws.services.dynamodbv2.model.QueryResult
+import com.amazonaws.services.dynamodbv2.model.Condition
+import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
 
-import com.amazonaws.services.dynamodb.model.ProvisionedThroughputExceededException
-import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException
-import com.amazonaws.services.dynamodb.model.InternalServerErrorException
-import com.amazonaws.services.dynamodb.model.ResourceNotFoundException
+import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputExceededException
+import com.amazonaws.services.dynamodbv2.model.ConditionalCheckFailedException
+import com.amazonaws.services.dynamodbv2.model.InternalServerErrorException
+import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException
 import com.amazonaws.AmazonClientException
 import com.amazonaws.AmazonServiceException
 
@@ -82,6 +83,7 @@ class DynamoDBEntityFind extends DynamoDBEntityFindBase {
         // if over-constrained (anything in addition to a full PK), just use the full PK
         logger.info("DynamoDBEntityFind.one (73), simpleAndMap: ${simpleAndMap}")
         EntityCondition whereCondition = this.getWhereEntityCondition()
+            logger.info("DynamoDBFindEntity(96), whereCondition: ${whereCondition.toString()}")
         /*
         if (ed.containsPrimaryKey(simpleAndMap)) {
             whereCondition = (DynamoDBEntityConditionImplBase) this.conditionFactory.makeCondition(simpleAndMap)
@@ -93,31 +95,22 @@ class DynamoDBEntityFind extends DynamoDBEntityFindBase {
 
         DynamoDBEntityValue entValue = null
         try {
-            String entName = ed.getEntityName()
-            Key key = new Key()
-logger.info("DynamoDBFindEntity(96), whereCondition: ${whereCondition.toString()}")
+            String entName = ed.getFullEntityName()
             AttributeValue attrVal = whereCondition.getDynamoDBHashValue(ed)
-            if (attrVal) {
-                key.setHashKeyElement(attrVal)
-            } else {
-                throw(new EntityException("The condition ${whereCondition} for the entity: ${entName} does not specify a value for the primary key."))
-            }
-            AttributeValue attrVal2 = whereCondition.getDynamoDBRangeValue(ed)
-            // TODO: check to see if entity requires a range value to define the primary key
-            if (attrVal2) {
-                key.setRangeKeyElement(attrVal2)
-            }
-        logger.info("DynamoDBEntityFind.one (101), key: ${key.toString()}")
-            GetItemRequest getItemRequest = new GetItemRequest().withTableName(entName).withKey(key);
+            logger.info("DynamoDBEntityFind.one (101), attrVal: ${attrVal.toString()}")
+            String hashFieldName = ed.getFieldNames(true, false, false)[0]
+            Map<String, AttributeValue> keyConditions = new  HashMap()
+            keyConditions.put(hashFieldName, attrVal)
+            GetItemRequest getItemRequest = new GetItemRequest(entName, keyConditions)
             GetItemResult result = client.getItem(getItemRequest)     
                 
             java.util.Map<java.lang.String,AttributeValue> returnAttributeValueMap = result.getItem()
             
-        logger.info("DynamoDBEntityFind.one (106), returnAttributeValueMap: ${returnAttributeValueMap}")
-        if (returnAttributeValueMap) {
-            entValue = efi.makeValue(entName) 
-            entValue.buildEntityValueMap(returnAttributeValueMap)
-        }
+            logger.info("DynamoDBEntityFind.one (106), returnAttributeValueMap: ${returnAttributeValueMap}")
+            if (returnAttributeValueMap) {
+                entValue = efi.makeValue(entName) 
+                entValue.buildEntityValueMap(returnAttributeValueMap)
+            }
             
         } catch(ProvisionedThroughputExceededException e1) {
             throw new EntityException(e1.getMessage())
@@ -136,7 +129,6 @@ logger.info("DynamoDBFindEntity(96), whereCondition: ${whereCondition.toString()
         return entValue
     }
 
-    @Override
     EntityListIterator iteratorExtended(DynamoDBEntityConditionImplBase whereCondition, DynamoDBEntityConditionImplBase havingCondition,
                                         List<String> orderByExpanded) throws EntityException {
         EntityDefinition ed = this.getEntityDef()
@@ -152,29 +144,35 @@ logger.info("DynamoDBFindEntity(96), whereCondition: ${whereCondition.toString()
         List retList = null
         EntityList <DynamoDBEntityValue> entList = new EntityListImpl(this.efi)
         try {
+            Map<String, AttributeValue> keyConditions = new  HashMap()
             DynamoDBEntityConditionImplBase whereCondition = this.getWhereEntityCondition()
-            String entName = ed.getEntityName()
-logger.info("DynamoDBFindEntity(157), WHERECONDITION: ${whereCondition}")
+            logger.info("DynamoDBFindEntity(157), WHERECONDITION: ${whereCondition}")
+            String hashFieldName = ed.getFieldNames(true, false, false)[0]
             AttributeValue attrVal = whereCondition.getDynamoDBHashValue(ed)
             if (attrVal) {
-//                key.setHashKeyElement(attrVal)
+                Condition hashKeyCondition = new Condition()
+                    .withComparisonOperator(ComparisonOperator.EQ.toString())
+                    .withAttributeValueList(attrVal)
+                keyConditions.put(hashFieldName, hashKeyCondition)
             } else {
                 throw(new EntityException("The condition ${whereCondition} for the entity: ${entName} does not specify a value for the primary key."))
             }
             
-        QueryRequest queryRequest = new QueryRequest().withTableName(entName)
-            .withHashKeyValue(attrVal)
-            
-            
             Condition rangeCondition = whereCondition.getDynamoDBRangeCondition(ed)
-logger.info("DynamoDBFindEntity(170), rangeCondition: ${rangeCondition}")
+            logger.info("DynamoDBFindEntity(170), rangeCondition: ${rangeCondition}")
             if (rangeCondition) {
-                queryRequest.setRangeKeyCondition(rangeCondition)
+                String rangeFieldName = DynamoDBUtils.getRangeFieldName(ed)
+                keyConditions.put(rangeFieldName, rangeCondition)
             }
 
-logger.info("DynamoDBFindEntity(175), queryRequest: ${queryRequest}")
+            String entName = ed.getFullEntityName()
+            QueryRequest queryRequest = new QueryRequest().withTableName(entName)
+                                        .withKeyConditions(keyConditions)
+            
+            
+        logger.info("DynamoDBFindEntity(175), queryRequest: ${queryRequest}")
         QueryResult result = client.query(queryRequest);
-logger.info("DynamoDBFindEntity(176), result: ${result.getItems()}")
+        logger.info("DynamoDBFindEntity(176), result: ${result.getItems()}")
         DynamoDBEntityValue entValue = null
         for (Map<String, AttributeValue> item : result.getItems()) {
             entValue = new DynamoDBEntityValue(ed, this.efi, this.ddf)
@@ -199,7 +197,6 @@ logger.info("DynamoDBFindEntity(176), result: ${result.getItems()}")
         return entList
     }
 
-    @Override
     long countExtended(DynamoDBEntityConditionImplBase whereCondition, DynamoDBEntityConditionImplBase havingCondition)
             throws EntityException {
         EntityDefinition ed = this.getEntityDef()

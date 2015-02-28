@@ -6,9 +6,9 @@ import org.moqui.entity.EntityCondition
 import org.moqui.impl.entity.dynamodb.condition.DynamoDBEntityConditionImplBase
 import org.moqui.impl.entity.dynamodb.DynamoDBUtils
 
-import com.amazonaws.services.dynamodb.model.AttributeValue
-import com.amazonaws.services.dynamodb.model.Condition
-import com.amazonaws.services.dynamodb.model.ComparisonOperator
+import com.amazonaws.services.dynamodbv2.model.AttributeValue
+import com.amazonaws.services.dynamodbv2.model.Condition
+import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
 
 class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
 
@@ -62,7 +62,7 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
         AttributeValue retVal = null
             for (Node nd in fieldNodes) {
                 indexName = nd."@index"
-                if (indexName) {
+                if (nd."@is-range" == "true") {
                     fieldName = nd."@name"
         logger.info("DynamoDBMapCondition(64), indexName: ${indexName},fieldName: ${fieldName}, ${fieldMap}")
                     retVal =  DynamoDBUtils.getAttributeValue(fieldName, fieldMap, ed)
@@ -78,11 +78,10 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
         List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
         String indexName, fieldName
         Condition retVal = null
-        com.amazonaws.services.dynamodb.model.ComparisonOperator compOp = null
+        com.amazonaws.services.dynamodbv2.model.ComparisonOperator compOp = null
         AttributeValue attrVal = null
             for (Node nd in fieldNodes) {
-                indexName = nd."@index"
-                if (indexName) {
+                if (nd."@is-range" == "true") {
                     fieldName = nd."@name"
         logger.info("DynamoDBMapCondition(64), indexName: ${indexName},fieldName: ${fieldName}, ${fieldMap}")
                     //TODO: check that compare op is "EQUAL"

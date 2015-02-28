@@ -19,9 +19,9 @@ import org.moqui.entity.EntityCondition
 import org.moqui.impl.entity.condition.ListCondition
 import org.moqui.impl.entity.dynamodb.condition.DynamoDBEntityConditionImplBase
 
-import com.amazonaws.services.dynamodb.model.AttributeValue
-import com.amazonaws.services.dynamodb.model.ComparisonOperator
-import com.amazonaws.services.dynamodb.model.Condition
+import com.amazonaws.services.dynamodbv2.model.AttributeValue
+import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
+import com.amazonaws.services.dynamodbv2.model.Condition
 
 class DynamoDBListCondition extends DynamoDBEntityConditionImplBase {
     protected final static org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DynamoDBListCondition.class)

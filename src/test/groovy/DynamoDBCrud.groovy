@@ -20,7 +20,7 @@ import org.moqui.entity.EntityList
 import org.moqui.Moqui
 import org.moqui.impl.entity.dynamodb.DynamoDBDatasourceFactory
 import org.moqui.impl.entity.dynamodb.DynamoDBEntityValue
-import com.amazonaws.services.dynamodb.model.ComparisonOperator
+import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
 
 class DynamoDBCrud extends Specification {
     @Shared

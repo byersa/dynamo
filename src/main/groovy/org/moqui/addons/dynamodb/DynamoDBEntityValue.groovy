@@ -28,29 +28,31 @@ import org.moqui.impl.entity.dynamodb.DynamoDBDatasourceFactory
 import org.moqui.impl.entity.dynamodb.DynamoDBEntityFind
 import org.moqui.impl.entity.dynamodb.DynamoDBUtils
 
-import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
-import com.amazonaws.services.dynamodb.model.AttributeAction
-import com.amazonaws.services.dynamodb.model.AttributeValue
-import com.amazonaws.services.dynamodb.model.AttributeValueUpdate
-import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException
-import com.amazonaws.services.dynamodb.model.DeleteItemRequest
-import com.amazonaws.services.dynamodb.model.DeleteItemResult
-import com.amazonaws.services.dynamodb.model.ExpectedAttributeValue
-import com.amazonaws.services.dynamodb.model.GetItemRequest
-import com.amazonaws.services.dynamodb.model.GetItemResult
-import com.amazonaws.services.dynamodb.model.Key
-import com.amazonaws.services.dynamodb.model.PutItemRequest
-import com.amazonaws.services.dynamodb.model.PutItemResult
-import com.amazonaws.services.dynamodb.model.ReturnValue
-import com.amazonaws.services.dynamodb.model.UpdateItemRequest
-import com.amazonaws.services.dynamodb.model.UpdateItemResult
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
+import com.amazonaws.services.dynamodbv2.model.AttributeAction
+import com.amazonaws.services.dynamodbv2.model.AttributeValue
+import com.amazonaws.services.dynamodbv2.model.AttributeValueUpdate
+import com.amazonaws.services.dynamodbv2.model.ConditionalCheckFailedException
+import com.amazonaws.services.dynamodbv2.model.DeleteItemRequest
+import com.amazonaws.services.dynamodbv2.model.DeleteItemResult
+import com.amazonaws.services.dynamodbv2.model.ExpectedAttributeValue
+import com.amazonaws.services.dynamodbv2.model.GetItemRequest
+import com.amazonaws.services.dynamodbv2.model.GetItemResult
+//import com.amazonaws.services.dynamodbv2.model.Key
+import com.amazonaws.services.dynamodbv2.model.PutItemRequest
+import com.amazonaws.services.dynamodbv2.model.PutItemResult
+import com.amazonaws.services.dynamodbv2.model.ReturnValue
+import com.amazonaws.services.dynamodbv2.model.UpdateItemRequest
+import com.amazonaws.services.dynamodbv2.model.UpdateItemResult
 
-import com.amazonaws.services.dynamodb.model.ProvisionedThroughputExceededException
-import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException
-import com.amazonaws.services.dynamodb.model.InternalServerErrorException
-import com.amazonaws.services.dynamodb.model.ResourceNotFoundException
+import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputExceededException
+import com.amazonaws.services.dynamodbv2.model.ConditionalCheckFailedException
+import com.amazonaws.services.dynamodbv2.model.InternalServerErrorException
+import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException
 import com.amazonaws.AmazonClientException
 import com.amazonaws.AmazonServiceException
+
+import java.sql.Connection
 
 import org.moqui.impl.entity.dynamodb.DynamoDBDatasourceFactory
 
@@ -76,7 +78,7 @@ class DynamoDBEntityValue extends EntityValueBase {
     }
 
     @Override
-    void createExtended(ListOrderedSet fieldList) {
+    void createExtended(ListOrderedSet fieldList, Connection con) {
     
         EntityDefinition entityDefinition = getEntityDefinition()
         logger.info("In DynamoDBEntityValue.create, fieldList: ${fieldList}")
@@ -88,7 +90,7 @@ class DynamoDBEntityValue extends EntityValueBase {
         logger.info("In DynamoDBEntityValue.create, valueMap: ${this.getValueMap()}")
             this.buildAttributeValueMap(item, this.getValueMap());
         logger.info("In DynamoDBEntityValue.create, item: ${item}")
-            PutItemRequest putItemRequest = new PutItemRequest().withTableName(entityDefinition.getEntityName()).withItem(item);
+            PutItemRequest putItemRequest = new PutItemRequest().withTableName(entityDefinition.getFullEntityName()).withItem(item);
             PutItemResult result = client.putItem(putItemRequest)     
         } catch(ProvisionedThroughputExceededException e1) {
             throw new EntityException(e1.getMessage())
@@ -107,7 +109,7 @@ class DynamoDBEntityValue extends EntityValueBase {
     }
 
     @Override
-    void updateExtended(List<String> pkFieldList, ListOrderedSet nonPkFieldList) {
+    void updateExtended(List<String> pkFieldList, ListOrderedSet nonPkFieldList, Connection con) {
     
         logger.info("DynamoDBEntityValue.updateExtended (111), this: ${this.toString()}")
         EntityDefinition entityDefinition = getEntityDefinition()
@@ -124,8 +126,8 @@ class DynamoDBEntityValue extends EntityValueBase {
 
         DynamoDBEntityValue entValue = null
         try {
-            String entName = entityDefinition.getEntityName()
-            Key key = new Key()
+            String entName = entityDefinition.getFullEntityName()
+            Map<String, AttributeValue> key = new HashMap()
             AttributeValue attrVal = whereCondition.getDynamoDBHashValue(entityDefinition)
             if (attrVal) {
                 key.setHashKeyElement(attrVal)
@@ -161,7 +163,7 @@ class DynamoDBEntityValue extends EntityValueBase {
     }
 
     @Override
-    void deleteExtended() {
+    void deleteExtended(Connection con) {
         EntityDefinition entityDefinition = getEntityDefinition()
         if (entityDefinition.isViewEntity()) throw new EntityException("Update not yet implemented for view-entity")
 
@@ -176,18 +178,18 @@ class DynamoDBEntityValue extends EntityValueBase {
 
         DynamoDBEntityValue entValue = null
         try {
-            String entName = entityDefinition.getEntityName()
-            Key key = new Key()
+            String entName = entityDefinition.getFullEntityName()
+            Map<String, AttributeValue> key = new HashMap()
             AttributeValue attrVal = whereCondition.getDynamoDBHashValue(entityDefinition)
             if (attrVal) {
-                key.setHashKeyElement(attrVal)
+                //key.setHashKeyElement(attrVal)
             } else {
                 throw(new EntityException("In update, the condition ${whereCondition} for the entity: ${entName} does not specify a value for the primary key."))
             }
             AttributeValue attrVal2 = whereCondition.getDynamoDBRangeValue(entityDefinition)
             // TODO: check to see if entity requires a range value to define the primary key
             if (attrVal2) {
-                key.setRangeKeyElement(attrVal2)
+                //key.setRangeKeyElement(attrVal2)
             }
             AmazonDynamoDBClient client = ddf.getDatabase()
             DeleteItemRequest deleteItemRequest = new DeleteItemRequest().withTableName(entName).withKey(key);
@@ -351,6 +353,10 @@ class DynamoDBEntityValue extends EntityValueBase {
         
     }
 
+    EntityValue cloneValue() {
+        // FIXME
+        return this
+    }
 /*
     AttributeValue getAttributeValue(fieldName) {
     

@@ -27,8 +27,9 @@ import java.sql.Types
 
 import com.amazonaws.AmazonServiceException
 import com.amazonaws.auth.BasicAWSCredentials
-import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
-
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
+import com.amazonaws.regions.Region
+import com.amazonaws.regions.Regions
 /**
  * To use this:
  * 1. add a datasource under the entity-facade element in the Moqui Conf file; for example:
@@ -101,8 +102,13 @@ class DynamoDBDatasourceFactory implements EntityDatasourceFactory {
             secretAccessKey = inlineOtherNode."@dynamodb-secretAccessKey"
         }
 
+        logger.info("accessKey: ${accessKey}, secretAccessKey: ${secretAccessKey}")
         BasicAWSCredentials credentials = new BasicAWSCredentials(accessKey, secretAccessKey);
+        logger.info("credentials: ${credentials}")
         dynamoDBClient = new AmazonDynamoDBClient(credentials)
+        logger.info("dynamoDBClient: ${dynamoDBClient}")
+        Region usEast1 = Region.getRegion(Regions.US_EAST_1)
+        dynamoDBClient.setRegion(usEast1)
         
         return this
     }
@@ -134,4 +140,8 @@ class DynamoDBDatasourceFactory implements EntityDatasourceFactory {
     @Override
     DataSource getDataSource() { return null }
 
+    @Override
+    void checkAndAddTable(java.lang.String tableName) {
+        return
+    }
 }

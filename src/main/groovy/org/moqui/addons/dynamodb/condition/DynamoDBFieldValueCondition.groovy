@@ -20,9 +20,9 @@ import org.moqui.impl.entity.dynamodb.DynamoDBUtils
 import org.moqui.impl.entity.dynamodb.condition.DynamoDBEntityConditionImplBase
 import org.moqui.impl.entity.condition.ConditionField
 import org.moqui.impl.entity.condition.FieldValueCondition
-import com.amazonaws.services.dynamodb.model.AttributeValue
-import com.amazonaws.services.dynamodb.model.Condition
-import com.amazonaws.services.dynamodb.model.ComparisonOperator
+import com.amazonaws.services.dynamodbv2.model.AttributeValue
+import com.amazonaws.services.dynamodbv2.model.Condition
+import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
 
 class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
 
@@ -81,7 +81,7 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
         List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
         String indexName, fieldName
         Condition retVal = null
-        com.amazonaws.services.dynamodb.model.ComparisonOperator compOp = null
+        com.amazonaws.services.dynamodbv2.model.ComparisonOperator compOp = null
         AttributeValue attrVal = null
             for (Node nd in fieldNodes) {
                 indexName = nd."@index"

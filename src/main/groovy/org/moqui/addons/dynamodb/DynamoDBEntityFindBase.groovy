@@ -124,6 +124,16 @@ class DynamoDBEntityFindBase implements EntityFind {
         return this
     }
 
+    EntityFind condition(String arg1, String arg2, Object obj3) {
+        // FIXME: put here to satisfy non-abstract requirement
+        return this
+    }
+ 
+    EntityFind disableAuthz() {
+        // FIXME: put here to satisfy non-abstract requirement
+        return this
+    }
+
     EntityFind conditionDate(String fromFieldName, String thruFieldName, java.sql.Timestamp compareStamp) {
         condition(conditionFactory.makeConditionDate(fromFieldName, thruFieldName, compareStamp))
         return this
