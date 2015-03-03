@@ -9,6 +9,7 @@ import org.moqui.impl.entity.dynamodb.DynamoDBUtils
 import com.amazonaws.services.dynamodbv2.model.AttributeValue
 import com.amazonaws.services.dynamodbv2.model.Condition
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
+import com.amazonaws.services.dynamodbv2.document.RangeKeyCondition
 
 class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
 
@@ -74,7 +75,7 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
     }
 
 
-    Condition getDynamoDBRangeCondition(EntityDefinition ed) {
+    Condition getDynamoDBCondition(EntityDefinition ed) {
         List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
         String indexName, fieldName
         Condition retVal = null
@@ -97,6 +98,12 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
             }
         return retVal
     }
+
+    RangeKeyCondition getRangeCondition(EntityDefinition ed) {
+        RangeKeyCondition rangeCond = null
+        return rangeCond
+    }
+
     Map <String, Condition> getDynamoDBScanConditionMap() {
         return null;
     }

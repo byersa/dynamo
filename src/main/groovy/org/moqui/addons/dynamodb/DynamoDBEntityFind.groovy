@@ -62,16 +62,27 @@ import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException
 import com.amazonaws.AmazonClientException
 import com.amazonaws.AmazonServiceException
 
+import com.amazonaws.services.dynamodbv2.document.DynamoDB
+import com.amazonaws.services.dynamodbv2.document.Table
+import com.amazonaws.services.dynamodbv2.document.PrimaryKey
+import com.amazonaws.services.dynamodbv2.document.spec.GetItemSpec
+import com.amazonaws.services.dynamodbv2.document.GetItemOutcome
+import com.amazonaws.services.dynamodbv2.document.Item
+import com.amazonaws.services.dynamodbv2.document.ItemCollection
+import com.amazonaws.services.dynamodbv2.document.spec.QuerySpec
+import com.amazonaws.services.dynamodbv2.document.QueryOutcome
+import com.amazonaws.services.dynamodbv2.document.RangeKeyCondition
 
 class DynamoDBEntityFind extends DynamoDBEntityFindBase {
     protected final static org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DynamoDBEntityFind.class)
     protected AmazonDynamoDBClient client
+    protected DynamoDB dynamoDB
     protected DynamoDBDatasourceFactory ddf
 
     DynamoDBEntityFind(EntityFacadeImpl efi, String entityName, DynamoDBDatasourceFactory ddf) {
         super(efi, entityName)
         this.ddf = ddf
-        this.client = ddf.getDatabase()
+        this.dynamoDB = ddf.getDatabase()
     }
 
     // ======================== Run Find Methods ==============================
@@ -95,21 +106,35 @@ class DynamoDBEntityFind extends DynamoDBEntityFindBase {
 
         DynamoDBEntityValue entValue = null
         try {
-            String entName = ed.getFullEntityName()
-            AttributeValue attrVal = whereCondition.getDynamoDBHashValue(ed)
-            logger.info("DynamoDBEntityFind.one (101), attrVal: ${attrVal.toString()}")
+            AttributeValue hashAttrVal = whereCondition.getDynamoDBHashValue(ed)
+            logger.info("DynamoDBEntityFind.one (107), hashAttrVal: ${hashAttrVal.toString()}")
             String hashFieldName = ed.getFieldNames(true, false, false)[0]
-            Map<String, AttributeValue> keyConditions = new  HashMap()
-            keyConditions.put(hashFieldName, attrVal)
-            GetItemRequest getItemRequest = new GetItemRequest(entName, keyConditions)
-            GetItemResult result = client.getItem(getItemRequest)     
-                
-            java.util.Map<java.lang.String,AttributeValue> returnAttributeValueMap = result.getItem()
+            PrimaryKey primaryKey = new PrimaryKey(hashFieldName, hashAttrVal.getS())
+            RangeKeyCondition rangeCondition = whereCondition.getRangeCondition(ed)
+            logger.info("DynamoDBFindEntity(111), rangeCondition: ${rangeCondition}")
+            if (rangeCondition) {
+                AttributeValue rangeAttrValue = rangeCondition.getAttibuteValueList()[0]
+                String rangeFieldName = DynamoDBUtils.getRangeFieldName(ed)
+                primaryKey.addComponent(rangeFieldName, rangeAttrValue.getS())
+            }
+            GetItemSpec getItemSpec = new GetItemSpec().withPrimaryKey(primaryKey)
+
+            String entName = ed.getFullEntityName()
+            Table table = dynamoDB.getTable(entName)
+            logger.info("DynamoDBEntityFind.one table: ${table}")
+            GetItemOutcome getItemOutcome = table.getItemOutcome(getItemSpec)
+            Item item = getItemOutcome.getItem()
             
-            logger.info("DynamoDBEntityFind.one (106), returnAttributeValueMap: ${returnAttributeValueMap}")
-            if (returnAttributeValueMap) {
-                entValue = efi.makeValue(entName) 
-                entValue.buildEntityValueMap(returnAttributeValueMap)
+            logger.info("DynamoDBEntityFind.one item: ${item}")
+            Map<java.lang.String,java.lang.Object> itemAsMap
+            if (item) {
+                itemAsMap = item.asMap()
+                logger.info("DynamoDBEntityFind.list itemAsMap: ${itemAsMap}")
+                entValue = ddf.makeEntityValue(entName) 
+                //entValue.buildEntityValueMap()
+                entValue.setAll(itemAsMap)
+            } else {
+                entValue = null
             }
             
         } catch(ProvisionedThroughputExceededException e1) {
@@ -142,43 +167,40 @@ class DynamoDBEntityFind extends DynamoDBEntityFindBase {
         long startTime = System.currentTimeMillis()
         EntityDefinition ed = this.getEntityDef()
         List retList = null
-        EntityList <DynamoDBEntityValue> entList = new EntityListImpl(this.efi)
+        DynamoDBEntityValue entValue = null
+        EntityList entList = new EntityListImpl(this.efi)
         try {
-            Map<String, AttributeValue> keyConditions = new  HashMap()
             DynamoDBEntityConditionImplBase whereCondition = this.getWhereEntityCondition()
-            logger.info("DynamoDBFindEntity(157), WHERECONDITION: ${whereCondition}")
+            logger.info("DynamoDBEntityFind.list whereCondition: ${whereCondition}")
+            AttributeValue hashAttrVal = whereCondition.getDynamoDBHashValue(ed)
+            logger.info("DynamoDBEntityFind.list , hashAttrVal: ${hashAttrVal.toString()}")
             String hashFieldName = ed.getFieldNames(true, false, false)[0]
-            AttributeValue attrVal = whereCondition.getDynamoDBHashValue(ed)
-            if (attrVal) {
-                Condition hashKeyCondition = new Condition()
-                    .withComparisonOperator(ComparisonOperator.EQ.toString())
-                    .withAttributeValueList(attrVal)
-                keyConditions.put(hashFieldName, hashKeyCondition)
-            } else {
-                throw(new EntityException("The condition ${whereCondition} for the entity: ${entName} does not specify a value for the primary key."))
-            }
-            
-            Condition rangeCondition = whereCondition.getDynamoDBRangeCondition(ed)
+            QuerySpec querySpec = new QuerySpec().withHashKey(hashFieldName, hashAttrVal.getS())
+            RangeKeyCondition rangeCondition = whereCondition.getRangeCondition(ed)
             logger.info("DynamoDBFindEntity(170), rangeCondition: ${rangeCondition}")
             if (rangeCondition) {
-                String rangeFieldName = DynamoDBUtils.getRangeFieldName(ed)
-                keyConditions.put(rangeFieldName, rangeCondition)
+                querySpec = querySpec.withRangeKeyCondition(rangeCondition)
             }
 
             String entName = ed.getFullEntityName()
-            QueryRequest queryRequest = new QueryRequest().withTableName(entName)
-                                        .withKeyConditions(keyConditions)
+            logger.info("DynamoDBEntityFind.one entName: ${entName}")
+            Table table = dynamoDB.getTable(entName)
+            logger.info("DynamoDBEntityFind.one table: ${table}")
+            ItemCollection <QueryOutcome> queryOutcomeList = table.query(querySpec)
+            //List <Item> itemList = queryOutcome.getItems()
+            
+            logger.info("DynamoDBEntityFind.list queryOutcomeList: ${queryOutcomeList}")
+            Map<java.lang.String,java.lang.Object> itemAsMap
+            queryOutcomeList.each() {item ->
+                itemAsMap = item.asMap()
+                logger.info("DynamoDBEntityFind.list itemAsMap: ${itemAsMap}")
+                entValue = ddf.makeEntityValue(entName) 
+                //entValue.buildEntityValueMap()
+                entValue.setAll(itemAsMap)
+                entList.add(entValue)
+            }
             
             
-        logger.info("DynamoDBFindEntity(175), queryRequest: ${queryRequest}")
-        QueryResult result = client.query(queryRequest);
-        logger.info("DynamoDBFindEntity(176), result: ${result.getItems()}")
-        DynamoDBEntityValue entValue = null
-        for (Map<String, AttributeValue> item : result.getItems()) {
-            entValue = new DynamoDBEntityValue(ed, this.efi, this.ddf)
-            entValue.buildEntityValueMap(item)
-            entList.add(entValue)
-        }        
             
         } catch(ProvisionedThroughputExceededException e1) {
             throw new EntityException(e1.getMessage())

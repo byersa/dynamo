@@ -52,6 +52,16 @@ import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException
 import com.amazonaws.AmazonClientException
 import com.amazonaws.AmazonServiceException
 
+import com.amazonaws.services.dynamodbv2.document.DynamoDB
+import com.amazonaws.services.dynamodbv2.document.Table
+import com.amazonaws.services.dynamodbv2.document.PrimaryKey
+import com.amazonaws.services.dynamodbv2.document.spec.GetItemSpec
+import com.amazonaws.services.dynamodbv2.document.GetItemOutcome
+import com.amazonaws.services.dynamodbv2.document.Item
+import com.amazonaws.services.dynamodbv2.document.spec.QuerySpec
+import com.amazonaws.services.dynamodbv2.document.QueryOutcome
+import com.amazonaws.services.dynamodbv2.document.RangeKeyCondition
+
 import java.sql.Connection
 
 import org.moqui.impl.entity.dynamodb.DynamoDBDatasourceFactory
@@ -73,7 +83,8 @@ class DynamoDBEntityValue extends EntityValueBase {
         super(ed, efip)
         this.ddf = ddf
         for (String fieldName in ed.getAllFieldNames()) {
-            this.getValueMap().put(fieldName, valMap.field(ed.getColumnName(fieldName, false)))
+            Map<String, AttributeValue> valueMap = this.getValueMap()
+            valueMap.put(fieldName, valMap.field(ed.getColumnName(fieldName, false)))
         }
     }
 
@@ -84,11 +95,12 @@ class DynamoDBEntityValue extends EntityValueBase {
         logger.info("In DynamoDBEntityValue.create, fieldList: ${fieldList}")
         if (entityDefinition.isViewEntity()) throw new EntityException("Create not yet implemented for view-entity")
 
-        AmazonDynamoDBClient client = ddf.getDatabase()
+        AmazonDynamoDBClient client = ddf.getDynamoDBClient()
         Map<String, AttributeValue> item = new HashMap<String, AttributeValue>()
         try {
-        logger.info("In DynamoDBEntityValue.create, valueMap: ${this.getValueMap()}")
-            this.buildAttributeValueMap(item, this.getValueMap());
+            Map<String, AttributeValue> valueMap = this.getValueMap()
+        logger.info("In DynamoDBEntityValue.create, valueMap: ${valueMap}")
+            this.buildAttributeValueMap(item, valueMap);
         logger.info("In DynamoDBEntityValue.create, item: ${item}")
             PutItemRequest putItemRequest = new PutItemRequest().withTableName(entityDefinition.getFullEntityName()).withItem(item);
             PutItemResult result = client.putItem(putItemRequest)     
@@ -111,24 +123,28 @@ class DynamoDBEntityValue extends EntityValueBase {
     @Override
     void updateExtended(List<String> pkFieldList, ListOrderedSet nonPkFieldList, Connection con) {
     
+        DynamoDBEntityValue entValue = null
         logger.info("DynamoDBEntityValue.updateExtended (111), this: ${this.toString()}")
-        EntityDefinition entityDefinition = getEntityDefinition()
-        if (entityDefinition.isViewEntity()) throw new EntityException("Update not yet implemented for view-entity")
+        EntityDefinition ed = getEntityDefinition()
+        if (ed.isViewEntity()) throw new EntityException("Update not yet implemented for view-entity")
 
-        logger.info("DynamoDBEntityValue.updateExtended, valueMap: ${this.getValueMap()}")
+            Map<String, AttributeValue> valueMap = this.getValueMap()
+        logger.info("DynamoDBEntityValue.updateExtended, valueMap: ${this.valueMap}")
         DynamoDBEntityConditionImplBase whereCondition
-        if (entityDefinition.containsPrimaryKey(this.getValueMap())) {
-            whereCondition = (DynamoDBEntityConditionImplBase) this.conditionFactory.makeCondition(this.getValueMap())
+        if (entityDefinition.containsPrimaryKey(valueMap)) {
+            whereCondition = (DynamoDBEntityConditionImplBase) this.conditionFactory.makeCondition(valueMap)
         } else {
-            throw(new EntityException("In update, primary key not contained in ${this.getValueMap()}"))
+            throw(new EntityException("In update, primary key not contained in ${valueMap}"))
         }
 
-
-        DynamoDBEntityValue entValue = null
         try {
-            String entName = entityDefinition.getFullEntityName()
+            String entName = ed.getFullEntityName()
+            AttributeValue attrVal = whereCondition.getDynamoDBHashValue(ed)
+            logger.info("DynamoDBEntityFind.one (updateExtended), attrVal: ${attrVal.toString()}")
+            String hashFieldName = ed.getFieldNames(true, false, false)[0]
+            Map<String, AttributeValue> keyConditions = new  HashMap()
+            keyConditions.put(hashFieldName, attrVal)
             Map<String, AttributeValue> key = new HashMap()
-            AttributeValue attrVal = whereCondition.getDynamoDBHashValue(entityDefinition)
             if (attrVal) {
                 key.setHashKeyElement(attrVal)
             } else {
@@ -139,7 +155,7 @@ class DynamoDBEntityValue extends EntityValueBase {
             if (attrVal2) {
                 key.setRangeKeyElement(attrVal2)
             }
-        AmazonDynamoDBClient client = ddf.getDatabase()
+        AmazonDynamoDBClient client = ddf.getDynamoDBClient()
         Map<String, AttributeValueUpdate> item = new HashMap<String, AttributeValueUpdate>()
         logger.info("In DynamoDBEntityValue.update, valueMap: ${this.getValueMap()}")
             this.buildAttributeValueUpdateMap(item, this.getValueMap());
@@ -167,12 +183,13 @@ class DynamoDBEntityValue extends EntityValueBase {
         EntityDefinition entityDefinition = getEntityDefinition()
         if (entityDefinition.isViewEntity()) throw new EntityException("Update not yet implemented for view-entity")
 
-        logger.info("DynamoDBEntityFind.one (73), simpleAndMap: ${this.getValueMap()}")
+            Map<String, AttributeValue> valueMap = this.getValueMap()
+        logger.info("DynamoDBEntityFind.one (73), simpleAndMap: ${valueMap}")
         DynamoDBEntityConditionImplBase whereCondition
-        if (entityDefinition.containsPrimaryKey(this.getValueMap())) {
-            whereCondition = (DynamoDBEntityConditionImplBase) this.conditionFactory.makeCondition(this.getValueMap())
+        if (entityDefinition.containsPrimaryKey(valueMap)) {
+            whereCondition = (DynamoDBEntityConditionImplBase) this.conditionFactory.makeCondition(valueMap)
         } else {
-            throw(new EntityException("In update, primary key not contained in ${this.getValueMap()}"))
+            throw(new EntityException("In update, primary key not contained in ${valueMap}"))
         }
 
 
@@ -298,7 +315,13 @@ class DynamoDBEntityValue extends EntityValueBase {
         
     }
     
-    void buildEntityValueMap( Map<String, EntityValue> attributeValueItem) {
+    void testFunction() {
+        return;
+    }
+
+    //void buildEntityValueMap( Map<String, AttributeValue> attributeValueItem) {
+    void buildEntityValueMap( ) {
+     return;
     
         String fieldName, fieldType
         AttributeValue attrVal
@@ -411,4 +434,5 @@ class DynamoDBEntityValue extends EntityValueBase {
     }
 */    
     
+
 }

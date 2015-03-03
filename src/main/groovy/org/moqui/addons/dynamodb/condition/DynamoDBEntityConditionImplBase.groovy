@@ -13,9 +13,11 @@ package org.moqui.impl.entity.dynamodb.condition
 
 import org.moqui.impl.entity.dynamodb.DynamoDBEntityConditionFactoryImpl
 import org.moqui.entity.EntityCondition
+import org.moqui.impl.entity.EntityDefinition
 import org.moqui.impl.entity.EntityQueryBuilder
 import com.amazonaws.services.dynamodbv2.model.AttributeValue
 import com.amazonaws.services.dynamodbv2.model.Condition
+import com.amazonaws.services.dynamodbv2.document.RangeKeyCondition
 
 abstract class DynamoDBEntityConditionImplBase implements EntityCondition {
     DynamoDBEntityConditionFactoryImpl ecFactoryImpl
@@ -35,6 +37,11 @@ abstract class DynamoDBEntityConditionImplBase implements EntityCondition {
 
     Map <String, Condition> getDynamoDBScanConditionMap() {
         return null;
+    }
+
+    RangeKeyCondition getRangeCondition(EntityDefinition ed) {
+        RangeKeyCondition rangeCond = null
+        return rangeCond
     }
 
    @Override

@@ -24,6 +24,8 @@ import com.amazonaws.services.dynamodbv2.model.AttributeValue
 import com.amazonaws.services.dynamodbv2.model.Condition
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
 
+import com.amazonaws.services.dynamodbv2.document.RangeKeyCondition
+
 class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
 
     protected final static org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DynamoDBFieldValueCondition.class)
@@ -77,15 +79,14 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
         return retVal
     }
 
-    Condition getDynamoDBRangeCondition(EntityDefinition ed) {
+    Condition getDynamoDBCondition(EntityDefinition ed) {
         List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
         String indexName, fieldName
         Condition retVal = null
         com.amazonaws.services.dynamodbv2.model.ComparisonOperator compOp = null
         AttributeValue attrVal = null
             for (Node nd in fieldNodes) {
-                indexName = nd."@index"
-                if (indexName) {
+                if (nd."@is-range") {
                     fieldName = nd."@name"
         logger.info("DynamoDBFieldValueCondition(64), indexName: ${indexName},fieldName: ${fieldName}, value: ${value}")
                     //TODO: check that compare op is "EQUAL"
@@ -101,6 +102,52 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
                 }
             }
         return retVal
+    }
+
+    RangeKeyCondition getRangeCondition(EntityDefinition ed) {
+        List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
+        String indexName, fieldName
+        RangeKeyCondition rangeCond = null
+        AttributeValue attrVal = null
+            for (Node nd in fieldNodes) {
+                if (nd."@is-range") {
+                    fieldName = nd."@name"
+                    logger.info("DynamoDBFieldValueCondition(64), indexName: ${indexName},fieldName: ${fieldName}, value: ${value}")
+                    //TODO: check that compare op is "EQUAL"
+                    if (fieldName == this.field.fieldName) {
+                        attrVal =  DynamoDBUtils.getAttributeValue(fieldName, [(fieldName):this.value], ed)
+                        logger.info("DynamoDBFieldValueCondition(66), attrVal: ${attrVal}")
+                        com.amazonaws.services.dynamodbv2.model.ComparisonOperator compOp = DynamoDBUtils.getComparisonOperator(operator)
+                        switch(compOp) {
+                            case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.EQ:
+                                rangeCond = new RangeKeyCondition().eq(attrVal.getS())
+                                break
+                            case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.LT:
+                                rangeCond = new RangeKeyCondition().lt(attrVal.getS())
+                                break
+                            case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.GT:
+                                rangeCond = new RangeKeyCondition().gt(attrVal.getS())
+                                break
+                            case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.LE:
+                                rangeCond = new RangeKeyCondition().le(attrVal.getS())
+                                break
+                            case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.GE:
+                                rangeCond = new RangeKeyCondition().ge(attrVal.getS())
+                                break
+                            case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.BEGINS_WITH:
+                                rangeCond = new RangeKeyCondition().beginsWith(attrVal.getS())
+                                break
+                            case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.BETWEEN:
+                                rangeCond = new RangeKeyCondition().between(attrVal.getS())
+                                break
+                            default:
+                                rangeCond = new RangeKeyCondition().eq(attrVal.getS())
+                                break
+                        }
+                    }
+                }
+            }
+        return rangeCond
     }
 
 Map <String, Condition> getDynamoDBScanConditionMap() {
