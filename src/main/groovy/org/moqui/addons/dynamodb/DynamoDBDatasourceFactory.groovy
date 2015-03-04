@@ -246,7 +246,7 @@ class DynamoDBDatasourceFactory implements EntityDatasourceFactory {
                     for (Node indexFieldNode in indexNode."index-field") {
                         indexFieldName = indexFieldNode."@name"
                         secondaryIndex = new GlobalSecondaryIndex()
-                            .withIndexName(indexFieldName + "Index")
+                            .withIndexName(indexNode."@name")
                             .withProvisionedThroughput(new ProvisionedThroughput()
                                 .withReadCapacityUnits((long) 10)
                                 .withWriteCapacityUnits((long) 1))

@@ -45,7 +45,77 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
     EntityCondition ignoreCase() { return null }
 
 
-    AttributeValue getDynamoDBHashValue(EntityDefinition ed) {
+    String getDynamoDBHashValue(EntityDefinition ed) {
+        Map<String, Object>priKeys = ed.getPrimaryKeys(fieldMap)
+        String retVal = null
+        logger.info("DynamoDBMapCondition(48), priKeys: ${priKeys}, ed: ${ed}")
+        for(Map.Entry fieldEntry in priKeys) {
+            logger.info("DynamoDBMapCondition(48), fieldEntry: ${fieldEntry}")
+            if( this.fieldMap[fieldEntry.key]) {
+                retVal = this.fieldMap[fieldEntry.key]
+                break
+            }
+        }
+        logger.info("DynamoDBMapCondition(1), retVal: ${retVal}")
+        return retVal;
+    }
+
+    Map getDynamoDBFilterExpressionMap(EntityDefinition ed, List skipFieldNames) {
+        Map retMap
+        logger.info("in getDynamoDBFilterExpressionMap, skipFieldNames: ${skipFieldNames}")
+        List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
+        String indexName, fieldName, fieldValue
+        String filterExpression = ""
+        Map attrNameMap = new HashMap()
+        Map attrValueMap = new HashMap()
+        for (Node nd in fieldNodes) {
+            fieldName = nd."@name"
+            logger.info("in getDynamoDBFilterExpressionMap, fieldName: ${fieldName}")
+            if (skipFieldNames.indexOf(fieldName) < 0) {
+                if( this.fieldMap[fieldName]) {
+                    if (filterExpression) { filterExpress += " AND " }
+                    filterExpression += "#${fieldName} = :${fieldName} "
+                    logger.info("in getDynamoDBFilterExpressionMap, filterExpression: ${filterExpression}")
+                    attrNameMap.put("#" + fieldName, fieldName)
+                    attrValueMap.put(":" + fieldName, this.fieldMap[fieldName])
+                    break
+                }
+            }
+        }
+        if (filterExpression) {
+            retMap = new HashMap()
+            retMap["filterExpression"] = filterExpression
+            retMap["nameMap"] = attrNameMap
+            retMap["valueMap"] = attrValueMap
+        }
+                    logger.info("in getDynamoDBFilterExpressionMap, retMap: ${retMap}")
+        return retMap
+    }
+
+    Map <String, String> getDynamoDBIndexValue(EntityDefinition ed) {
+         
+         Map <String, String> retVal
+                        logger.info("DynamoDBMapCondition, getDynamoDBIndexValue, ed.entityNode: ${ed.entityNode}")
+                for (Node indexNode in ed.entityNode."index") {
+                        logger.info("DynamoDBMapCondition, getDynamoDBIndexValue, indexNode: ${indexNode}")
+                    String indexFieldName
+                    for (Node indexFieldNode in indexNode."index-field") {
+                        indexFieldName = indexFieldNode."@name"
+                        logger.info("DynamoDBMapCondition, getDynamoDBIndexValue, indexFieldName: ${indexFieldName}")
+                        if( this.fieldMap[indexFieldName]) {
+                            retVal = new HashMap()
+                            // indexNode."@name" has the secondary index name that DynamoDB knows
+                            retVal.put("indexName", indexNode."@name")
+                            retVal.put("indexFieldName", indexFieldName)
+                            retVal.put("indexFieldValue", this.fieldMap[indexFieldName])
+                            break
+                        }
+                    }   
+                }
+        return retVal;
+    }
+
+    AttributeValue getDynamoDBHashAttributeValue(EntityDefinition ed) {
         Map<String, Object>priKeys = ed.getPrimaryKeys(fieldMap)
         AttributeValue retVal = null
         logger.info("DynamoDBMapCondition(48), priKeys: ${priKeys}, ed: ${ed}")

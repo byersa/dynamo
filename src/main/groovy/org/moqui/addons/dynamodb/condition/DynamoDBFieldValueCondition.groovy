@@ -48,7 +48,38 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
     EntityCondition ignoreCase() { return null }
 
 
-    AttributeValue getDynamoDBHashValue(EntityDefinition ed) {
+    String getDynamoDBHashValue(EntityDefinition ed) {
+        // This method first looks to see if the field name in the condition (this.field.fieldName) is on the primary key def
+        // if not, then it could be a secondary key, so look for all indices defined by a "<index..." and see if their field names
+        // match the condition field name
+        List<String> priKeyNames = ed.getPkFieldNames()
+        String retVal = null
+    logger.info("DynamoDBFieldValueCondition, priKeyNames: ${priKeyNames}, this.field.fieldName:  '${this.field.fieldName}', in priKeyNames: ${this.field.fieldName in priKeyNames}")
+        if (this.field.fieldName in priKeyNames) {
+            retVal = this.value
+        }
+        if (!retVal) {
+            List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
+            String indexName, fieldName
+        
+            for (Node nd in fieldNodes) {
+                indexName = nd."@index"
+                if (indexName) {
+                    fieldName = nd."@name"
+                    logger.info("DynamoDBFieldValueCondition(66), indexName: ${indexName},fieldName: ${fieldName}, value: ${value}")
+                    //TODO: check that compare op is "EQUAL"
+                    if (fieldName == this.field.fieldName) {
+                        retVal =  this.value
+                        logger.info("DynamoDBFieldValueCondition(70), retVal: ${retVal}")
+                        break;
+                    }
+                }
+            }
+        }
+        return retVal;
+    }
+
+    AttributeValue getDynamoDBHashAttributeValue(EntityDefinition ed) {
         List<String> priKeyNames = ed.getPkFieldNames()
         AttributeValue retVal = null
     logger.info("DynamoDBFieldValueCondition, priKeyNames: ${priKeyNames}, this.field.fieldName:  '${this.field.fieldName}', in priKeyNames: ${this.field.fieldName in priKeyNames}")
@@ -58,7 +89,28 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
         return retVal;
     }
 
-    AttributeValue getDynamoDBRangeValue(EntityDefinition ed) {
+    String getDynamoDBRangeValue(EntityDefinition ed) {
+        List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
+        String indexName, fieldName
+        String retVal = null
+        
+            for (Node nd in fieldNodes) {
+                indexName = nd."@index"
+                if (indexName) {
+                    fieldName = nd."@name"
+        logger.info("DynamoDBFieldValueCondition(66), indexName: ${indexName},fieldName: ${fieldName}, value: ${value}")
+                    //TODO: check that compare op is "EQUAL"
+                    if (fieldName == this.field.fieldName) {
+                        retVal =  this.value
+        logger.info("DynamoDBFieldValueCondition(70), retVal: ${retVal}")
+                        break;
+                    }
+                }
+            }
+        return retVal
+    }
+
+    AttributeValue getDynamoDBRangeAttributeValue(EntityDefinition ed) {
         List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
         String indexName, fieldName
         AttributeValue retVal = null

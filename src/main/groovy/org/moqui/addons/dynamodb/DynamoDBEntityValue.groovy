@@ -13,6 +13,7 @@ package org.moqui.impl.entity.dynamodb
 
 import java.sql.Timestamp
 import java.sql.Date
+import java.text.SimpleDateFormat
 import org.apache.commons.collections.set.ListOrderedSet
 
 import org.moqui.entity.EntityException
@@ -57,6 +58,8 @@ import com.amazonaws.services.dynamodbv2.document.Table
 import com.amazonaws.services.dynamodbv2.document.PrimaryKey
 import com.amazonaws.services.dynamodbv2.document.spec.GetItemSpec
 import com.amazonaws.services.dynamodbv2.document.GetItemOutcome
+import com.amazonaws.services.dynamodbv2.document.spec.PutItemSpec
+import com.amazonaws.services.dynamodbv2.document.PutItemOutcome
 import com.amazonaws.services.dynamodbv2.document.Item
 import com.amazonaws.services.dynamodbv2.document.spec.QuerySpec
 import com.amazonaws.services.dynamodbv2.document.QueryOutcome
@@ -96,14 +99,21 @@ class DynamoDBEntityValue extends EntityValueBase {
         if (entityDefinition.isViewEntity()) throw new EntityException("Create not yet implemented for view-entity")
 
         AmazonDynamoDBClient client = ddf.getDynamoDBClient()
-        Map<String, AttributeValue> item = new HashMap<String, AttributeValue>()
+        DynamoDB dynamoDB = ddf.getDatabase()
         try {
-            Map<String, AttributeValue> valueMap = this.getValueMap()
-        logger.info("In DynamoDBEntityValue.create, valueMap: ${valueMap}")
-            this.buildAttributeValueMap(item, valueMap);
-        logger.info("In DynamoDBEntityValue.create, item: ${item}")
-            PutItemRequest putItemRequest = new PutItemRequest().withTableName(entityDefinition.getFullEntityName()).withItem(item);
-            PutItemResult result = client.putItem(putItemRequest)     
+            String tableName = entityDefinition.getFullEntityName()
+            Table table = dynamoDB.getTable(tableName)
+            logger.info("In DynamoDBEntityValue.create, table: ${table}")
+            Map<String, Object> valueMap = this.getValueMap()
+            logger.info("In DynamoDBEntityValue.create, valueMap: ${valueMap}")
+            Item item = Item.fromMap(valueMap)
+            PutItemSpec putItemSpec = new PutItemSpec().withItem(item)
+            PutItemOutcome putItemOutcome = table.putItem(putItemSpec)
+            logger.info("In DynamoDBEntityValue.create, putItemOutcome: ${putItemOutcome}")
+            //this.buildAttributeValueMap(item, valueMap);
+            //logger.info("In DynamoDBEntityValue.create, item: ${item}")
+            //PutItemRequest putItemRequest = new PutItemRequest().withTableName(entityDefinition.getFullEntityName()).withItem(item);
+            //PutItemResult result = client.putItem(putItemRequest)     
         } catch(ProvisionedThroughputExceededException e1) {
             throw new EntityException(e1.getMessage())
         } catch(ConditionalCheckFailedException e2) {
@@ -123,59 +133,70 @@ class DynamoDBEntityValue extends EntityValueBase {
     @Override
     void updateExtended(List<String> pkFieldList, ListOrderedSet nonPkFieldList, Connection con) {
     
-        DynamoDBEntityValue entValue = null
-        logger.info("DynamoDBEntityValue.updateExtended (111), this: ${this.toString()}")
-        EntityDefinition ed = getEntityDefinition()
-        if (ed.isViewEntity()) throw new EntityException("Update not yet implemented for view-entity")
-
-            Map<String, AttributeValue> valueMap = this.getValueMap()
-        logger.info("DynamoDBEntityValue.updateExtended, valueMap: ${this.valueMap}")
-        DynamoDBEntityConditionImplBase whereCondition
-        if (entityDefinition.containsPrimaryKey(valueMap)) {
-            whereCondition = (DynamoDBEntityConditionImplBase) this.conditionFactory.makeCondition(valueMap)
-        } else {
-            throw(new EntityException("In update, primary key not contained in ${valueMap}"))
-        }
-
-        try {
-            String entName = ed.getFullEntityName()
-            AttributeValue attrVal = whereCondition.getDynamoDBHashValue(ed)
-            logger.info("DynamoDBEntityFind.one (updateExtended), attrVal: ${attrVal.toString()}")
-            String hashFieldName = ed.getFieldNames(true, false, false)[0]
-            Map<String, AttributeValue> keyConditions = new  HashMap()
-            keyConditions.put(hashFieldName, attrVal)
-            Map<String, AttributeValue> key = new HashMap()
-            if (attrVal) {
-                key.setHashKeyElement(attrVal)
-            } else {
-                throw(new EntityException("In update, the condition ${whereCondition} for the entity: ${entName} does not specify a value for the primary key."))
-            }
-            AttributeValue attrVal2 = whereCondition.getDynamoDBRangeValue(entityDefinition)
-            // TODO: check to see if entity requires a range value to define the primary key
-            if (attrVal2) {
-                key.setRangeKeyElement(attrVal2)
-            }
-        AmazonDynamoDBClient client = ddf.getDynamoDBClient()
-        Map<String, AttributeValueUpdate> item = new HashMap<String, AttributeValueUpdate>()
-        logger.info("In DynamoDBEntityValue.update, valueMap: ${this.getValueMap()}")
-            this.buildAttributeValueUpdateMap(item, this.getValueMap());
-        logger.info("In DynamoDBEntityValue.update, item: ${item}")
-            UpdateItemRequest updateItemRequest = new UpdateItemRequest().withTableName(entName).withKey(key).withAttributeUpdates(item);
-            UpdateItemResult result = client.updateItem(updateItemRequest)     
-        } catch(ProvisionedThroughputExceededException e1) {
-            throw new EntityException(e1.getMessage())
-        } catch(ConditionalCheckFailedException e2) {
-            throw new EntityException(e2.getMessage())
-        } catch(InternalServerErrorException e3) {
-            throw new EntityException(e3.getMessage())
-        } catch(ResourceNotFoundException e4) {
-            throw new EntityException(e4.getMessage())
-        } catch(AmazonClientException e5) {
-            throw new EntityException(e5.getMessage())
-        } catch(AmazonServiceException e6) {
-            throw new EntityException(e6.getMessage())
-        }finally {
-        }
+        List <String> fieldList = new ArrayList()
+        ListOrderedSet newLOS = new ListOrderedSet(nonPkFieldList)
+        newLOS.addAll(pkFieldList)
+        logger.info("DynamoDBEntityValue.updateExtended, newLOS: ${newLOS}")
+        this.createExtended(newLOS, con)
+//        DynamoDBEntityValue entValue = null
+//        logger.info("DynamoDBEntityValue.updateExtended (111), this: ${this.toString()}")
+//        EntityDefinition ed = getEntityDefinition() //        if (ed.isViewEntity()) throw new EntityException("Update not yet implemented for view-entity")
+//
+//            Map<String, AttributeValue> valueMap = this.getValueMap()
+//        logger.info("DynamoDBEntityValue.updateExtended, valueMap: ${valueMap}")
+//        DynamoDBEntityConditionImplBase whereCondition
+//        //if (ed.containsPrimaryKey(valueMap)) {
+//            whereCondition = (DynamoDBEntityConditionImplBase) this.conditionFactory.makeCondition(valueMap)
+//        logger.info("DynamoDBEntityValue.updateExtended, whereCondition: ${whereCondition}")
+//        //} else {
+//            //throw(new EntityException("In update, primary key not contained in ${valueMap}"))
+//        //}
+//
+//        try {
+//            String entName = ed.getFullEntityName()
+//            logger.info("DynamoDBEntityValue (updateExtended), entName: ${entName}")
+//            EntityFind entityFind = efi.makeFind(entityName)
+//            logger.info("DynamoDBEntityValue (updateExtended), entityFind: ${entityFind}")
+//            EntityValue newValue = entityFind.condition(whereCondition).one()
+//            logger.info("DynamoDBEntityValue (updateExtended), newValue: ${newValue}")
+////            EntityValue newValue = entityFind.condition(this.getValueMap()).one()
+////            AttributeValue attrVal = whereCondition.getDynamoDBHashValue(ed)
+////            logger.info("DynamoDBEntityValue (updateExtended), attrVal: ${attrVal.toString()}")
+////            String hashFieldName = ed.getFieldNames(true, false, false)[0]
+////            Map<String, AttributeValue> keyConditions = new  HashMap()
+////            keyConditions.put(hashFieldName, attrVal)
+////            Map<String, AttributeValue> key = new HashMap()
+////            if (attrVal) {
+////                key.setHashKeyElement(attrVal)
+////            } else {
+////                throw(new EntityException("In update, the condition ${whereCondition} for the entity: ${entName} does not specify a value for the primary key."))
+////            }
+////            AttributeValue attrVal2 = whereCondition.getDynamoDBRangeValue(entityDefinition)
+////            // TODO: check to see if entity requires a range value to define the primary key
+////            if (attrVal2) {
+////                key.setRangeKeyElement(attrVal2)
+////            }
+////        AmazonDynamoDBClient client = ddf.getDynamoDBClient()
+////        Map<String, AttributeValueUpdate> item = new HashMap<String, AttributeValueUpdate>()
+////        logger.info("In DynamoDBEntityValue.update, valueMap: ${this.getValueMap()}")
+////            this.buildAttributeValueUpdateMap(item, this.getValueMap());
+////        logger.info("In DynamoDBEntityValue.update, item: ${item}")
+////            UpdateItemRequest updateItemRequest = new UpdateItemRequest().withTableName(entName).withKey(key).withAttributeUpdates(item);
+////            UpdateItemResult result = client.updateItem(updateItemRequest)     
+//        } catch(ProvisionedThroughputExceededException e1) {
+//            throw new EntityException(e1.getMessage())
+//        } catch(ConditionalCheckFailedException e2) {
+//            throw new EntityException(e2.getMessage())
+//        } catch(InternalServerErrorException e3) {
+//            throw new EntityException(e3.getMessage())
+//        } catch(ResourceNotFoundException e4) {
+//            throw new EntityException(e4.getMessage())
+//        } catch(AmazonClientException e5) {
+//            throw new EntityException(e5.getMessage())
+//        } catch(AmazonServiceException e6) {
+//            throw new EntityException(e6.getMessage())
+//        }finally {
+//        }
     }
 
     @Override
@@ -379,6 +400,22 @@ class DynamoDBEntityValue extends EntityValueBase {
     EntityValue cloneValue() {
         // FIXME
         return this
+    }
+
+    Map<String, Object> getValueMap() {
+        Map<String, Object> newValueMap = new HashMap()
+        Map<String, Object> parentValueMap = super.getValueMap()
+        logger.info("parentValueMap: ${parentValueMap}")
+        parentValueMap.each{k,v ->
+            if (v instanceof Timestamp) {
+               logger.info("${k} is Timestamp")
+               newValueMap[k] = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(v)
+            } else {
+               newValueMap[k] = v 
+            }   
+        }   
+        logger.info("newValueMap: ${newValueMap}")
+        return newValueMap
     }
 /*
     AttributeValue getAttributeValue(fieldName) {
