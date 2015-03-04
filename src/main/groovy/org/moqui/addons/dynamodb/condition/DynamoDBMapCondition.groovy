@@ -3,6 +3,8 @@ package org.moqui.impl.entity.dynamodb.condition
 import org.moqui.impl.entity.dynamodb.DynamoDBEntityConditionFactoryImpl
 import org.moqui.impl.entity.EntityDefinition
 import org.moqui.entity.EntityCondition
+import org.moqui.entity.EntityCondition.ComparisonOperator
+import org.moqui.entity.EntityCondition.JoinOperator
 import org.moqui.impl.entity.dynamodb.condition.DynamoDBEntityConditionImplBase
 import org.moqui.impl.entity.dynamodb.DynamoDBUtils
 
@@ -17,13 +19,13 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
     
     protected Class internalClass = null
     protected Map<String, ?> fieldMap
-    protected EntityCondition.ComparisonOperator comparisonOperator
-    protected EntityCondition.JoinOperator joinOperator
+    protected org.moqui.entity.EntityCondition.ComparisonOperator comparisonOperator
+    protected org.moqui.entity.EntityCondition.JoinOperator joinOperator
     protected boolean ignoreCase = false
 
     DynamoDBMapCondition(DynamoDBEntityConditionFactoryImpl ecFactoryImpl,
-            Map<String, ?> fieldMap, EntityCondition.ComparisonOperator comparisonOperator,
-            EntityCondition.JoinOperator joinOperator) {
+            Map<String, ?> fieldMap, org.moqui.entity.EntityCondition.ComparisonOperator comparisonOperator,
+            org.moqui.entity.EntityCondition.JoinOperator joinOperator) {
         super(ecFactoryImpl)
         this.fieldMap = fieldMap ? fieldMap : new HashMap()
         this.comparisonOperator = comparisonOperator ? comparisonOperator : EntityCondition.EQUALS
@@ -170,7 +172,20 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
     }
 
     RangeKeyCondition getRangeCondition(EntityDefinition ed) {
+        List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
+        String indexName, fieldName
         RangeKeyCondition rangeCond = null
+        String attrVal = null
+            for (Node nd in fieldNodes) {
+                if (!rangeCond && nd."@is-range") {
+                    fieldName = nd."@name"
+                        logger.info("in getRangeCondition, fieldName: ${fieldName}, value: ${this.fieldMap[fieldName]}")
+                    if (this.fieldMap[fieldName]) {
+                        rangeCond = new RangeKeyCondition(fieldName).eq(this.fieldMap[fieldName])
+                        logger.info("in getRangeCondition, rangeCond: ${rangeCond}")
+                    }
+                }
+            }
         return rangeCond
     }
 

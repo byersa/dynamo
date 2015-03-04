@@ -20,6 +20,7 @@ import org.moqui.impl.entity.dynamodb.DynamoDBUtils
 import org.moqui.impl.entity.dynamodb.condition.DynamoDBEntityConditionImplBase
 import org.moqui.impl.entity.condition.ConditionField
 import org.moqui.impl.entity.condition.FieldValueCondition
+
 import com.amazonaws.services.dynamodbv2.model.AttributeValue
 import com.amazonaws.services.dynamodbv2.model.Condition
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
@@ -160,40 +161,41 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
         List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
         String indexName, fieldName
         RangeKeyCondition rangeCond = null
-        AttributeValue attrVal = null
+        String attrVal = null
+        logger.info("DynamoDBFieldValueCondition , operator: ${operator}, this.field.fieldName: ${this.field.fieldName}, this.value: ${value}")
             for (Node nd in fieldNodes) {
                 if (nd."@is-range") {
                     fieldName = nd."@name"
-                    logger.info("DynamoDBFieldValueCondition(64), indexName: ${indexName},fieldName: ${fieldName}, value: ${value}")
                     //TODO: check that compare op is "EQUAL"
                     if (fieldName == this.field.fieldName) {
-                        attrVal =  DynamoDBUtils.getAttributeValue(fieldName, [(fieldName):this.value], ed)
+        logger.info("DynamoDBFieldValueCondition , fieldName: ${fieldName}")
+                        //attrVal =  DynamoDBUtils.getAttributeValue(fieldName, [(fieldName):this.value], ed)
                         logger.info("DynamoDBFieldValueCondition(66), attrVal: ${attrVal}")
                         com.amazonaws.services.dynamodbv2.model.ComparisonOperator compOp = DynamoDBUtils.getComparisonOperator(operator)
                         switch(compOp) {
                             case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.EQ:
-                                rangeCond = new RangeKeyCondition().eq(attrVal.getS())
+                                rangeCond = new RangeKeyCondition().eq(value)
                                 break
                             case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.LT:
-                                rangeCond = new RangeKeyCondition().lt(attrVal.getS())
+                                rangeCond = new RangeKeyCondition().lt(value)
                                 break
                             case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.GT:
-                                rangeCond = new RangeKeyCondition().gt(attrVal.getS())
+                                rangeCond = new RangeKeyCondition().gt(value)
                                 break
                             case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.LE:
-                                rangeCond = new RangeKeyCondition().le(attrVal.getS())
+                                rangeCond = new RangeKeyCondition().le(value)
                                 break
                             case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.GE:
-                                rangeCond = new RangeKeyCondition().ge(attrVal.getS())
+                                rangeCond = new RangeKeyCondition().ge(value)
                                 break
                             case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.BEGINS_WITH:
-                                rangeCond = new RangeKeyCondition().beginsWith(attrVal.getS())
+                                rangeCond = new RangeKeyCondition().beginsWith(value)
                                 break
                             case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.BETWEEN:
-                                rangeCond = new RangeKeyCondition().between(attrVal.getS())
+                                rangeCond = new RangeKeyCondition().between(value)
                                 break
                             default:
-                                rangeCond = new RangeKeyCondition().eq(attrVal.getS())
+                                rangeCond = new RangeKeyCondition().eq(value)
                                 break
                         }
                     }
@@ -201,6 +203,63 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
             }
         return rangeCond
     }
+
+    Map getDynamoDBFilterExpressionMap(EntityDefinition ed, List skipFieldNames) {
+        Map retMap
+        logger.info("in getDynamoDBFilterExpressionMap, skipFieldNames: ${skipFieldNames}")
+            logger.info("in getDynamoDBFilterExpressionMap, value: ${value}, this.field.fieldName: ${this.field.fieldName}")
+        List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
+        String indexName, fieldName, fieldValue
+        String filterExpression = ""
+        Map attrNameMap = new HashMap()
+        Map attrValueMap = new HashMap()
+        for (Node nd in fieldNodes) {
+            fieldName = nd."@name"
+            logger.info("in getDynamoDBFilterExpressionMap, fieldName: ${fieldName}, this.field.fieldName: ${this.field.fieldName}")
+            if (fieldName == this.field.fieldName && skipFieldNames.indexOf(fieldName) < 0) {
+                    if (filterExpression) { filterExpression += " AND " }
+                    String op 
+                    switch(this.operator) {
+                        case org.moqui.entity.EntityCondition.ComparisonOperator.GREATER_THAN:
+                            op = " > "
+                            break
+                        case org.moqui.entity.EntityCondition.ComparisonOperator.GREATER_THAN_EQUAL_TO:
+                            op = " >= "
+                            break
+                        case org.moqui.entity.EntityCondition.ComparisonOperator.LESS_THAN:
+                            op = com.amazonaws.services.dynamodbv2.model.ComparisonOperator.LT
+                            op = " < "
+                            break
+                        case org.moqui.entity.EntityCondition.ComparisonOperator.LESS_THAN_EQUAL_TO:
+                            op = com.amazonaws.services.dynamodbv2.model.ComparisonOperator.LE
+                            op = " <= "
+                            break
+                        case org.moqui.entity.EntityCondition.ComparisonOperator.LIKE:
+                            op = com.amazonaws.services.dynamodbv2.model.ComparisonOperator.BEGINS_WITH
+                            op = " >= "
+                            break
+                        case org.moqui.entity.EntityCondition.ComparisonOperator.NOT_EQUAL:
+                            op = " <> "
+                            break
+                        default:
+                            op = " = "
+                    }
+                    filterExpression += "#${field} ${op} :${field} "
+                    logger.info("in getDynamoDBFilterExpressionMap, filterExpression: ${filterExpression}")
+                    attrNameMap.put("#" + this.field.fieldName, this.field.fieldName)
+                    attrValueMap.put(":" + this.field.fieldName, this.value)
+            }
+        }
+        if (filterExpression) {
+            retMap = new HashMap()
+            retMap["filterExpression"] = filterExpression
+            retMap["nameMap"] = attrNameMap
+            retMap["valueMap"] = attrValueMap
+        }
+                    logger.info("in getDynamoDBFilterExpressionMap, retMap: ${retMap}")
+        return retMap
+    }
+
 
 Map <String, Condition> getDynamoDBScanConditionMap() {
         return null;

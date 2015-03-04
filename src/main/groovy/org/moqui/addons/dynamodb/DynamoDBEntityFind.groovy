@@ -212,8 +212,16 @@ class DynamoDBEntityFind extends DynamoDBEntityFindBase {
                     skipFieldNames.add(rangeFieldName)
                 }
     
-                logger.info("DynamoDBEntityFind.one entName: ${entName}")
-                logger.info("DynamoDBEntityFind.one table: ${table}")
+                Map expressMap = whereCondition.getDynamoDBFilterExpressionMap(ed, skipFieldNames)
+                if (expressMap) {
+                    logger.info("DynamoDBEntityFind.list expressMap: ${expressMap}")
+                    querySpec = querySpec
+                                 .withFilterExpression(expressMap.filterExpression)
+                                 .withNameMap(expressMap.nameMap)
+                                 .withValueMap(expressMap.valueMap)
+                }
+                logger.info("DynamoDBEntityFind.list entName: ${entName}")
+                logger.info("DynamoDBEntityFind.list table: ${table}")
                 ItemCollection <QueryOutcome> queryOutcomeList = table.query(querySpec)
                 //List <Item> itemList = queryOutcome.getItems()
                 

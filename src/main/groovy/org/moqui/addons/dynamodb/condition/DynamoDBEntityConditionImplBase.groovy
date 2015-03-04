@@ -39,6 +39,10 @@ abstract class DynamoDBEntityConditionImplBase implements EntityCondition {
         return null;
     }
 
+    Map getDynamoDBFilterExpressionMap(EntityDefinition ed, List skipFieldNames) {
+        return null;
+    }
+
     RangeKeyCondition getRangeCondition(EntityDefinition ed) {
         RangeKeyCondition rangeCond = null
         return rangeCond

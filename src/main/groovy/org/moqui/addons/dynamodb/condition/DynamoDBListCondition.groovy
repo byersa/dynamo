@@ -39,22 +39,25 @@ class DynamoDBListCondition extends DynamoDBEntityConditionImplBase {
 
     }
 
-    void addCondition(DynamoDBEntityConditionImplBase condition) { conditionList.add(condition) }
+    void addCondition(DynamoDBEntityConditionImplBase condition) { 
+         conditionList.add(condition) 
+                   logger.info("DynamoDBListCondition, conditionList: ${conditionList}")
+    }
 
     boolean mapMatches(Map<String, ?> map) { return null }
     EntityCondition ignoreCase() { return null }
 
 
-    AttributeValue getDynamoDBHashValue(EntityDefinition ed) {
-        AttributeValue attrVal = null
+    String getDynamoDBHashValue(EntityDefinition ed) {
+        String val
         for(DynamoDBEntityConditionImplBase cond in conditionList) {
-            attrVal = cond.getDynamoDBHashValue(ed)
-            if (attrVal) {
-                break
+            if (!val) {
+                val = cond.getDynamoDBHashValue(ed)
             }
         }
-        return attrVal
+        return val
     }
+
 
     AttributeValue getDynamoDBRangeValue(EntityDefinition ed) {
         List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
@@ -77,6 +80,41 @@ class DynamoDBListCondition extends DynamoDBEntityConditionImplBase {
             }
         }
         return attrVal
+    }
+
+    RangeKeyCondition getRangeCondition(EntityDefinition ed) {
+        RangeKeyCondition rangeCondition
+        for(DynamoDBEntityConditionImplBase cond in conditionList) {
+                   logger.info("DynamoDBListCondition, getRangeCondition, cond: ${cond}")
+                   logger.info("DynamoDBListCondition, getRangeCondition, cond.class: ${cond.class}")
+            if (!rangeCondition) {
+                rangeCondition = cond.getRangeCondition(ed)
+                   logger.info("DynamoDBListCondition, getRangeCondition, rangeCondition: ${rangeCondition}")
+            }
+        }
+        return rangeCondition
+    }
+
+    Map getDynamoDBFilterExpressionMap(EntityDefinition ed, List skipFieldNames) {
+        Map retMap, tmpMap
+        for(DynamoDBEntityConditionImplBase cond in conditionList) {
+            tmpMap = cond.getDynamoDBFilterExpressionMap(ed, skipFieldNames)
+            if (tmpMap) {
+                   logger.info("DynamoDBListCondition, tmpMap: ${tmpMap}")
+                if (!retMap) {
+                    retMap = new HashMap()
+                    retMap["filterExpression"] = tmpMap.filterExpression
+                    retMap["nameMap"] = tmpMap.nameMap
+                    retMap["valueMap"] = tmpMap.valueMap
+                } else {
+                    retMap.filterExpression += " AND " + tmpMap.filterExpression
+                    retMap.nameMap.putAll(tmpMap.nameMap)
+                    retMap.valueMap.putAll(tmpMap.valueMap)
+                }
+            }
+        }
+        logger.info("DynamoDBListCondition, retMap: ${retMap}")
+        return retMap
     }
 
     Condition getDynamoDBCondition(EntityDefinition ed) {
@@ -131,59 +169,6 @@ class DynamoDBListCondition extends DynamoDBEntityConditionImplBase {
         
         
         return returnCond
-    }
-
-    RangeKeyCondition getRangeCondition(EntityDefinition ed) {
-
-        
-        List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
-        String indexName, fieldName
-        RangeKeyCondition rangeCond = null
-// 
-// Stub out for now
-//
-        return rangeCond
-//
-        AttributeValue attrVal = null
-            for (Node nd in fieldNodes) {
-                if (nd."@is-range") {
-                    fieldName = nd."@name"
-                    logger.info("DynamoDBFieldValueCondition(64), indexName: ${indexName},fieldName: ${fieldName}, value: ${value}")
-                    //TODO: check that compare op is "EQUAL"
-                    if (fieldName == this.field.fieldName) {
-                        attrVal =  DynamoDBUtils.getAttributeValue(fieldName, [(fieldName):this.value], ed)
-                        logger.info("DynamoDBFieldValueCondition(66), attrVal: ${attrVal}")
-                        com.amazonaws.services.dynamodbv2.model.ComparisonOperator compOp = DynamoDBUtils.getComparisonOperator(operator)
-                        switch(compOp) {
-                            case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.EQ:
-                                rangeCond = new RangeKeyCondition().eq(attrVal.getS())
-                                break
-                            case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.LT:
-                                rangeCond = new RangeKeyCondition().lt(attrVal.getS())
-                                break
-                            case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.GT:
-                                rangeCond = new RangeKeyCondition().gt(attrVal.getS())
-                                break
-                            case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.LE:
-                                rangeCond = new RangeKeyCondition().le(attrVal.getS())
-                                break
-                            case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.GE:
-                                rangeCond = new RangeKeyCondition().ge(attrVal.getS())
-                                break
-                            case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.BEGINS_WITH:
-                                rangeCond = new RangeKeyCondition().beginsWith(attrVal.getS())
-                                break
-                            case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.BETWEEN:
-                                rangeCond = new RangeKeyCondition().between(attrVal.getS())
-                                break
-                            default:
-                                rangeCond = new RangeKeyCondition().eq(attrVal.getS())
-                                break
-                        }
-                    }
-                }
-            }
-        return rangeCond
     }
 
     Map <String, Condition> getDynamoDBScanConditionMap() {
