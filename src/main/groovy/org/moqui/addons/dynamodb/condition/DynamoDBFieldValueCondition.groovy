@@ -260,6 +260,28 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
         return retMap
     }
 
+    Map <String, String> getDynamoDBIndexValue(EntityDefinition ed) {
+         
+         Map <String, String> retVal
+                        logger.info("DynamoDBMapCondition, getDynamoDBIndexValue, ed.entityNode: ${ed.entityNode}")
+                for (Node indexNode in ed.entityNode."index") {
+                        logger.info("DynamoDBMapCondition, getDynamoDBIndexValue, indexNode: ${indexNode}")
+                    String indexFieldName
+                    for (Node indexFieldNode in indexNode."index-field") {
+                        indexFieldName = indexFieldNode."@name"
+                        logger.info("DynamoDBMapCondition, getDynamoDBIndexValue, indexFieldName: ${indexFieldName}")
+                        if( indexFieldName == this.field.fieldName) {
+                            retVal = new HashMap()
+                            // indexNode."@name" has the secondary index name that DynamoDB knows
+                            retVal.put("indexName", indexNode."@name")
+                            retVal.put("indexFieldName", indexFieldName)
+                            retVal.put("indexFieldValue", value)
+                            break
+                        }
+                    }   
+                }
+        return retVal;
+    }
 
 Map <String, Condition> getDynamoDBScanConditionMap() {
         return null;

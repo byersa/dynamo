@@ -43,6 +43,10 @@ abstract class DynamoDBEntityConditionImplBase implements EntityCondition {
         return null;
     }
 
+    Map <String, String> getDynamoDBIndexCondition(EntityDefinition ed) {
+        return null;
+    }
+
     RangeKeyCondition getRangeCondition(EntityDefinition ed) {
         RangeKeyCondition rangeCond = null
         return rangeCond

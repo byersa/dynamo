@@ -144,16 +144,15 @@ class DynamoDBEntityFind extends DynamoDBEntityFindBase {
                     entValue = null
                 }
             } else {
-                Map indexValMap = whereCondition.getDynamoDBIndexValue(ed)
+                Map <String, String> indexValMap = whereCondition.getDynamoDBIndexValue(ed)
                     logger.info("DynamoDBEntityFind.list indexValMap: ${indexValMap}")
-                EntityList entList 
                 if (indexValMap) {
-                    entList = this.queryIndex(indexValMap, table, entName)
+                    EntityList entList = this.queryIndex(indexValMap, table, entName, skipFieldNames, whereCondition, ed)
                     if (entList) {
                         entValue = entList[0]
                     }
                 } else {
-                    entList = this.scan(whereCondition, table, entName, ed, skipFieldNames)
+                    EntityList entList = this.scan(whereCondition, table, entName, ed, skipFieldNames)
                     if (entList) {
                         entValue = entList[0]
                     }
@@ -236,10 +235,10 @@ class DynamoDBEntityFind extends DynamoDBEntityFindBase {
                     entList.add(entValue)
                 }
             } else {
-                Map indexValMap = whereCondition.getDynamoDBIndexValue(ed)
+                Map <String, String> indexValMap = whereCondition.getDynamoDBIndexValue(ed)
                     logger.info("DynamoDBEntityFind.list indexValMap: ${indexValMap}")
                 if (indexValMap) {
-                    entList = this.queryIndex(indexValMap, table, entName)
+                    entList = this.queryIndex(indexValMap, table, entName, skipFieldNames, whereCondition, ed)
                 } else {
                     entList = this.scan(whereCondition, table, entName, ed, skipFieldNames)
                 }
@@ -305,21 +304,32 @@ class DynamoDBEntityFind extends DynamoDBEntityFindBase {
         return entList
     }
 
-    EntityList queryIndex(Map indexValMap, Table table, String entName) throws EntityException {
+    EntityList queryIndex(Map indexValMap, Table table, String entName, List <String> skipFieldNames, 
+                         DynamoDBEntityConditionImplBase whereCondition, EntityDefinition ed ) throws EntityException {
           EntityList entList = new EntityListImpl(this.efi)
           try {
-                    Index index = table.getIndex(indexValMap.indexName)
-                    logger.info("DynamoDBEntityFind.list index: ${index}")
-                    ItemCollection <QueryOutcome> queryOutcomeList = index.query(indexValMap.indexFieldName, indexValMap.indexFieldValue)
-                    logger.info("DynamoDBEntityFind.list queryOutcomeList: ${queryOutcomeList}")
-                    Map<java.lang.String,java.lang.Object> itemAsMap
-                    queryOutcomeList.each() {item ->
+                Index index = table.getIndex(indexValMap.indexName)
+                logger.info("DynamoDBEntityFind.list index: ${index}")
+                QuerySpec querySpec = new QuerySpec().withHashKey(indexValMap.indexFieldName, indexValMap.indexFieldValue)
+                skipFieldNames.add(indexValMap.indexFieldName)
+                Map expressMap = whereCondition.getDynamoDBFilterExpressionMap(ed, skipFieldNames)
+                if (expressMap) {
+                    logger.info("DynamoDBEntityFind.list expressMap: ${expressMap}")
+                    querySpec = querySpec
+                                 .withFilterExpression(expressMap.filterExpression)
+                                 .withNameMap(expressMap.nameMap)
+                                 .withValueMap(expressMap.valueMap)
+                }
+                ItemCollection <QueryOutcome> queryOutcomeList = index.query(querySpec)
+                logger.info("DynamoDBEntityFind.list queryOutcomeList: ${queryOutcomeList}")
+                Map<java.lang.String,java.lang.Object> itemAsMap
+                queryOutcomeList.each() {item ->
                         itemAsMap = item.asMap()
                         logger.info("DynamoDBEntityFind.list itemAsMap: ${itemAsMap}")
                         DynamoDBEntityValue entValue = ddf.makeEntityValue(entName) 
                         entValue.setAll(itemAsMap)
                         entList.add(entValue)
-                    }
+                }
             
         } catch(ProvisionedThroughputExceededException e1) {
             throw new EntityException(e1.getMessage())

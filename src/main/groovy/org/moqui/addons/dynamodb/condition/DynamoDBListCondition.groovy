@@ -58,6 +58,16 @@ class DynamoDBListCondition extends DynamoDBEntityConditionImplBase {
         return val
     }
 
+    Map <String, String> getDynamoDBIndexValue(EntityDefinition ed) {
+        Map <String, String> val
+        for(DynamoDBEntityConditionImplBase cond in conditionList) {
+            if (!val) {
+                val = cond.getDynamoDBIndexValue(ed)
+            }
+        }
+        return val
+    }
+
 
     AttributeValue getDynamoDBRangeValue(EntityDefinition ed) {
         List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
