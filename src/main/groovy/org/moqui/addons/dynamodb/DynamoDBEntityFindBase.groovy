@@ -80,7 +80,9 @@ class DynamoDBEntityFindBase implements EntityFind {
     /** @see org.moqui.entity.EntityFind#condition(String, Object) */
     EntityFind condition(String fieldName, Object value) {
         if (!this.simpleAndMap) this.simpleAndMap = new HashMap()
+    logger.info("DynamoDBEntityFindBase(83), condition, fieldName: ${fieldName}, value: ${value}")
         this.simpleAndMap.put(fieldName, value)
+        logger.info("DynamoDBEntityFindBase(85), condition, simplAndMap: ${simpleAndMap}")
         return this
     }
 

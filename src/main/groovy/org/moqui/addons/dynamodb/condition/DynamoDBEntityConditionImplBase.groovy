@@ -31,7 +31,7 @@ abstract class DynamoDBEntityConditionImplBase implements EntityCondition {
         return null;
     }
 
-    AttributeValue getDynamoDBRangeValue() {
+    String getDynamoDBRangeValue() {
         return null;
     }
 

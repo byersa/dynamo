@@ -129,16 +129,15 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
         return retVal;
     }
 
-    AttributeValue getDynamoDBRangeValue(EntityDefinition ed) {
+    String getDynamoDBRangeValue(EntityDefinition ed) {
         List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
-        String indexName, fieldName
-        AttributeValue retVal = null
+        String indexName, fieldName, retVal = null
             for (Node nd in fieldNodes) {
                 indexName = nd."@index"
                 if (nd."@is-range" == "true") {
                     fieldName = nd."@name"
         logger.info("DynamoDBMapCondition(64), indexName: ${indexName},fieldName: ${fieldName}, ${fieldMap}")
-                    retVal =  DynamoDBUtils.getAttributeValue(fieldName, fieldMap, ed)
+                    retVal =  fieldMap[fieldName]
         logger.info("DynamoDBMapCondition(66), retVal: ${retVal}")
                     break;
                 }

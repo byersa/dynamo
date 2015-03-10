@@ -20,15 +20,4 @@ import com.amazonaws.services.dynamodbv2.model.Condition
 
 class DynamoDBFieldToFieldCondition extends FieldToFieldCondition {
 
-    AttributeValue getDynamoDBHashValue() {
-        return null;
-    }
-
-    AttributeValue getDynamoDBRangeValue() {
-        return null;
-    }
-
-    Map <String, Condition> getDynamoDBScanConditionMap() {
-        return null;
-    }
 }

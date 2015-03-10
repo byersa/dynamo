@@ -114,23 +114,24 @@ class DynamoDBEntityFind extends DynamoDBEntityFindBase {
                 Table table = dynamoDB.getTable(entName)
             String hashVal = whereCondition.getDynamoDBHashValue(ed)
             if (hashVal) {
+                GetItemSpec getItemSpec = new GetItemSpec()
                 logger.info("DynamoDBEntityFind.one (107), hashVal: ${hashVal.toString()}")
                 String hashFieldName = ed.getFieldNames(true, false, false)[0]
                 skipFieldNames.add(hashFieldName)
-                PrimaryKey primaryKey = new PrimaryKey(hashFieldName, hashVal)
-                RangeKeyCondition rangeCondition = whereCondition.getRangeCondition(ed)
-                logger.info("DynamoDBFindEntity(111), rangeCondition: ${rangeCondition}")
-                if (rangeCondition) {
-                    AttributeValue rangeAttrValue = rangeCondition.getAttibuteValueList()[0]
+                //PrimaryKey primaryKey = new PrimaryKey(hashFieldName, hashVal)
+                //RangeKeyCondition rangeCondition = whereCondition.getRangeCondition(ed)
+                //logger.info("DynamoDBFindEntity(111), rangeCondition: ${rangeCondition}")
+                String rangeValue = whereCondition.getDynamoDBRangeValue(ed)
+                if (rangeValue) {
                     String rangeFieldName = DynamoDBUtils.getRangeFieldName(ed)
                     skipFieldNames.add(rangeFieldName)
-                    primaryKey.addComponent(rangeFieldName, rangeAttrValue.getS())
+                    getItemSpec = getItemSpec.withPrimaryKey(hashFieldName, hashVal, rangeFieldName, rangeValue)
+                } else {
+                    getItemSpec = getItemSpec.withPrimaryKey(hashFieldName, hashVal)
                 }
-                GetItemSpec getItemSpec = new GetItemSpec().withPrimaryKey(primaryKey)
     
                 logger.info("DynamoDBEntityFind.one table: ${table}")
-                GetItemOutcome getItemOutcome = table.getItemOutcome(getItemSpec)
-                Item item = getItemOutcome.getItem()
+                Item item = table.getItem(getItemSpec)
                 
                 logger.info("DynamoDBEntityFind.one item: ${item}")
                 Map<java.lang.String,java.lang.Object> itemAsMap
@@ -191,6 +192,7 @@ class DynamoDBEntityFind extends DynamoDBEntityFindBase {
         List retList = null
         DynamoDBEntityValue entValue = null
         EntityList entList = new EntityListImpl(this.efi)
+            logger.info("DynamoDBEntityFind.list efi: ${this.efi}")
         List <String> skipFieldNames = new ArrayList()
         try {
             DynamoDBEntityConditionImplBase whereCondition = this.getWhereEntityCondition()

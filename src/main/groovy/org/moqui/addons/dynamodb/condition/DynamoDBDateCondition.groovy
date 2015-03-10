@@ -51,16 +51,4 @@ class DynamoDBDateCondition extends DynamoDBEntityConditionImplBase {
     boolean mapMatches(Map<String, ?> map) { return null }
     EntityCondition ignoreCase() { return null }
 
-
-    AttributeValue getDynamoDBHashValue() {
-        return null;
-    }
-
-    AttributeValue getDynamoDBRangeValue() {
-        return null;
-    }
-
-    Map <String, Condition> getDynamoDBScanConditionMap() {
-        return null;
-    }
 }

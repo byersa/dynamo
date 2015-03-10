@@ -70,26 +70,13 @@ class DynamoDBListCondition extends DynamoDBEntityConditionImplBase {
 
 
     AttributeValue getDynamoDBRangeValue(EntityDefinition ed) {
-        List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
-        String indexName, indexFieldName
-        for (Node nd in fieldNodes) {
-            indexName = nd."@index"
-            if (indexName) {
-                indexFieldName = nd."@name"
-                break
-            }
-        }
-        if (!indexFieldName) {
-            return null
-        }
-        AttributeValue attrVal = null
+        String val
         for(DynamoDBEntityConditionImplBase cond in conditionList) {
-            attrVal = cond.getDynamoDBHashValue(ed)
-            if (attrVal) {
-                break
+            if (!val) {
+                val = cond.getDynamoDBRangeValue(ed)
             }
         }
-        return attrVal
+        return val
     }
 
     RangeKeyCondition getRangeCondition(EntityDefinition ed) {
