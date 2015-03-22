@@ -214,30 +214,30 @@ class DynamoDBDatasourceFactory implements EntityDatasourceFactory {
                          keySchema.add(new KeySchemaElement().withAttributeName(nodeName).withKeyType(KeyType.RANGE))
                          attributeDefinitions.add(new AttributeDefinition().withAttributeName(nodeName).withAttributeType("S"))
                     }
-                    String attrType
-                   switch(nd."@type") {
-                        case "id":
-                        case "id-long":
-                        case "text-short":
-                        case "text-medium":
-                        case "text-long":
-                        case "text-very-long":
-                        case "text-indicator":
-                        case "number-integer":
-                        case "number-decimal":
-                        case "number-float":
-                        case "currency-amount":
-                        case "currency-precise":
-                             attrType = "N"
-                             break
-                        case "date":
-                        case "time":
-                        case "date-time":
-                             attrType = "S"
-                             break
-                        default:
-                             attrType = "S"
-                    }
+//                    String attrType
+//                   switch(nd."@type") {
+//                        case "id":
+//                        case "id-long":
+//                        case "text-short":
+//                        case "text-medium":
+//                        case "text-long":
+//                        case "text-very-long":
+//                        case "text-indicator":
+//                        case "number-integer":
+//                        case "number-decimal":
+//                        case "number-float":
+//                        case "currency-amount":
+//                        case "currency-precise":
+//                             attrType = "N"
+//                             break
+//                        case "date":
+//                        case "time":
+//                        case "date-time":
+//                             attrType = "S"
+//                             break
+//                        default:
+//                             attrType = "S"
+//                    }
                 }
                 String indexFieldName
                 GlobalSecondaryIndex secondaryIndex 

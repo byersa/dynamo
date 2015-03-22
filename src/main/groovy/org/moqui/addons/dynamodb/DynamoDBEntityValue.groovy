@@ -411,7 +411,9 @@ class DynamoDBEntityValue extends EntityValueBase {
                logger.info("${k} is Timestamp")
                newValueMap[k] = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(v)
             } else {
-               newValueMap[k] = v 
+               if (v) {
+                   newValueMap[k] = v 
+               }
             }   
         }   
         logger.info("newValueMap: ${newValueMap}")
