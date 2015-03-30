@@ -239,18 +239,25 @@ class DynamoDBDatasourceFactory implements EntityDatasourceFactory {
 //                             attrType = "S"
 //                    }
                 }
-                String indexFieldName
+                String indexFieldName, projectionAttrVal
+                def projectionType
                 GlobalSecondaryIndex secondaryIndex 
                 List <GlobalSecondaryIndex> secondaryIndices = new ArrayList()
                 for (Node indexNode in ed.entityNode."index") {
                     for (Node indexFieldNode in indexNode."index-field") {
                         indexFieldName = indexFieldNode."@name"
+                        projectionAttrVal= indexFieldNode."@projection"
+                        if (projectionAttrVal && projectionAttrVal == "keys") {
+                             projectionType = ProjectionType.KEYS_ONLY
+                        } else {
+                             projectionType = ProjectionType.ALL
+                        }
                         secondaryIndex = new GlobalSecondaryIndex()
                             .withIndexName(indexNode."@name")
                             .withProvisionedThroughput(new ProvisionedThroughput()
                                 .withReadCapacityUnits((long) 10)
                                 .withWriteCapacityUnits((long) 1))
-                                .withProjection(new Projection().withProjectionType(ProjectionType.ALL))
+                                .withProjection(new Projection().withProjectionType(projectionType))
                         ArrayList<KeySchemaElement> indexKeySchema = new ArrayList()
                           
 //                        indexKeySchema.add(new KeySchemaElement()

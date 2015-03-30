@@ -55,26 +55,12 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
         // match the condition field name
         List<String> priKeyNames = ed.getPkFieldNames()
         String retVal = null
-    logger.info("DynamoDBFieldValueCondition, priKeyNames: ${priKeyNames}, this.field.fieldName:  '${this.field.fieldName}', in priKeyNames: ${this.field.fieldName in priKeyNames}")
-        if (this.field.fieldName in priKeyNames) {
-            retVal = this.value
-        }
-        if (!retVal) {
-            List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
-            String indexName, fieldName
-        
-            for (Node nd in fieldNodes) {
-                indexName = nd."@index"
-                if (indexName) {
-                    fieldName = nd."@name"
-                    logger.info("DynamoDBFieldValueCondition(66), indexName: ${indexName},fieldName: ${fieldName}, value: ${value}")
-                    //TODO: check that compare op is "EQUAL"
-                    if (fieldName == this.field.fieldName) {
-                        retVal =  this.value
-                        logger.info("DynamoDBFieldValueCondition(70), retVal: ${retVal}")
-                        break;
-                    }
-                }
+        logger.info("DynamoDBFieldValueCondition, priKeyNames: ${priKeyNames}, this.field.fieldName:  '${this.field.fieldName}', in priKeyNames: ${this.field.fieldName in priKeyNames}")
+        for(String fieldName in priKeyNames) {
+            logger.info("DynamoDBFieldValueCondition(getDynamoDBHashValue), fieldName: ${fieldName}, this.field.fieldName: ${this.field.fieldName}")
+            if( fieldName == this.field.fieldName) {
+                retVal =  this.value
+                break
             }
         }
         return retVal;
@@ -94,16 +80,20 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
         List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
         String indexName, fieldName
         String retVal = null
+        def isRange
         
             for (Node nd in fieldNodes) {
-                indexName = nd."@index"
-                if (indexName) {
-                    fieldName = nd."@name"
-        logger.info("DynamoDBFieldValueCondition(66), indexName: ${indexName},fieldName: ${fieldName}, value: ${value}")
+                fieldName = nd."@name"
+                isRange = nd."@is-range"
+                logger.info("DynamoDBFieldValueCondition(100), this.field.fieldName: ${this.field.fieldName},fieldName: ${fieldName}, value: ${value}")
+                logger.info("DynamoDBFieldValueCondition(101), isRange: ${isRange}")
+                if (nd."@is-range" == "true") {
+                //indexName = nd."@index"
+                //if (indexName) {
                     //TODO: check that compare op is "EQUAL"
                     if (fieldName == this.field.fieldName) {
                         retVal =  this.value
-        logger.info("DynamoDBFieldValueCondition(70), retVal: ${retVal}")
+        logger.info("DynamoDBFieldValueCondition(110), retVal: ${retVal}")
                         break;
                     }
                 }
@@ -168,39 +158,42 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
                     fieldName = nd."@name"
                     //TODO: check that compare op is "EQUAL"
                     if (fieldName == this.field.fieldName) {
-        logger.info("DynamoDBFieldValueCondition , fieldName: ${fieldName}")
-                        //attrVal =  DynamoDBUtils.getAttributeValue(fieldName, [(fieldName):this.value], ed)
-                        logger.info("DynamoDBFieldValueCondition(66), attrVal: ${attrVal}")
+                        logger.info("DynamoDBFieldValueCondition , fieldName: ${fieldName}")
                         com.amazonaws.services.dynamodbv2.model.ComparisonOperator compOp = DynamoDBUtils.getComparisonOperator(operator)
+                        logger.info("DynamoDBFieldValueCondition , compOp: ${compOp}")
                         switch(compOp) {
                             case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.EQ:
-                                rangeCond = new RangeKeyCondition().eq(value)
+                                rangeCond = new RangeKeyCondition(fieldName).eq(value)
                                 break
                             case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.LT:
-                                rangeCond = new RangeKeyCondition().lt(value)
+                                rangeCond = new RangeKeyCondition(fieldName).lt(value)
                                 break
                             case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.GT:
-                                rangeCond = new RangeKeyCondition().gt(value)
+                                rangeCond = new RangeKeyCondition(fieldName).gt(value)
                                 break
                             case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.LE:
-                                rangeCond = new RangeKeyCondition().le(value)
+                                rangeCond = new RangeKeyCondition(fieldName).le(value)
                                 break
                             case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.GE:
-                                rangeCond = new RangeKeyCondition().ge(value)
+                                rangeCond = new RangeKeyCondition(fieldName).ge(value)
                                 break
                             case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.BEGINS_WITH:
-                                rangeCond = new RangeKeyCondition().beginsWith(value)
+                                rangeCond = new RangeKeyCondition(fieldName).beginsWith(value)
                                 break
                             case com.amazonaws.services.dynamodbv2.model.ComparisonOperator.BETWEEN:
-                                rangeCond = new RangeKeyCondition().between(value)
+                                rangeCond = new RangeKeyCondition(fieldName).between(value)
                                 break
                             default:
-                                rangeCond = new RangeKeyCondition().eq(value)
+                                rangeCond = new RangeKeyCondition(fieldName).eq(value)
                                 break
                         }
                     }
                 }
             }
+        logger.info("DynamoDBFieldValueCondition , rangeCond: ${rangeCond}")
+        if (rangeCond) {
+        logger.info("DynamoDBFieldValueCondition , rangeCond: ${rangeCond,getKeyCondition()}")
+        }
         return rangeCond
     }
 

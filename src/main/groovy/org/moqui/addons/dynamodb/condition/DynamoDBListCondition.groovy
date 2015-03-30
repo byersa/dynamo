@@ -69,7 +69,7 @@ class DynamoDBListCondition extends DynamoDBEntityConditionImplBase {
     }
 
 
-    AttributeValue getDynamoDBRangeValue(EntityDefinition ed) {
+    String getDynamoDBRangeValue(EntityDefinition ed) {
         String val
         for(DynamoDBEntityConditionImplBase cond in conditionList) {
             if (!val) {

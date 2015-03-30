@@ -133,12 +133,12 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
         List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
         String indexName, fieldName, retVal = null
             for (Node nd in fieldNodes) {
-                indexName = nd."@index"
+                //indexName = nd."@index"
                 if (nd."@is-range" == "true") {
                     fieldName = nd."@name"
-        logger.info("DynamoDBMapCondition(64), indexName: ${indexName},fieldName: ${fieldName}, ${fieldMap}")
+        logger.info("DynamoDBMapCondition(139), fieldName: ${fieldName}, ${fieldMap}")
                     retVal =  fieldMap[fieldName]
-        logger.info("DynamoDBMapCondition(66), retVal: ${retVal}")
+        logger.info("DynamoDBMapCondition(141), retVal: ${retVal}")
                     break;
                 }
             }

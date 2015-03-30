@@ -115,13 +115,14 @@ class DynamoDBEntityFind extends DynamoDBEntityFindBase {
             String hashVal = whereCondition.getDynamoDBHashValue(ed)
             if (hashVal) {
                 GetItemSpec getItemSpec = new GetItemSpec()
-                logger.info("DynamoDBEntityFind.one (107), hashVal: ${hashVal.toString()}")
+                logger.info("DynamoDBEntityFind.one (107), hashVal: ${hashVal}")
                 String hashFieldName = ed.getFieldNames(true, false, false)[0]
                 skipFieldNames.add(hashFieldName)
                 //PrimaryKey primaryKey = new PrimaryKey(hashFieldName, hashVal)
                 //RangeKeyCondition rangeCondition = whereCondition.getRangeCondition(ed)
                 //logger.info("DynamoDBFindEntity(111), rangeCondition: ${rangeCondition}")
                 String rangeValue = whereCondition.getDynamoDBRangeValue(ed)
+                logger.info("DynamoDBEntityFind.one (125), rangeValue: ${rangeValue}")
                 if (rangeValue) {
                     String rangeFieldName = DynamoDBUtils.getRangeFieldName(ed)
                     skipFieldNames.add(rangeFieldName)
@@ -130,7 +131,7 @@ class DynamoDBEntityFind extends DynamoDBEntityFindBase {
                     getItemSpec = getItemSpec.withPrimaryKey(hashFieldName, hashVal)
                 }
     
-                logger.info("DynamoDBEntityFind.one table: ${table}")
+                logger.info("DynamoDBEntityFind.one getKeyComponents: ${getItemSpec.getKeyComponents()}")
                 Item item = table.getItem(getItemSpec)
                 
                 logger.info("DynamoDBEntityFind.one item: ${item}")
