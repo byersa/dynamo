@@ -192,7 +192,7 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
             }
         logger.info("DynamoDBFieldValueCondition , rangeCond: ${rangeCond}")
         if (rangeCond) {
-        logger.info("DynamoDBFieldValueCondition , rangeCond: ${rangeCond,getKeyCondition()}")
+        logger.info("DynamoDBFieldValueCondition , rangeCond: ${rangeCond.getKeyCondition()}")
         }
         return rangeCond
     }
