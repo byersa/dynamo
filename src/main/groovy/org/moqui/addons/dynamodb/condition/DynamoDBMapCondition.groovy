@@ -75,7 +75,7 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
             logger.info("in getDynamoDBFilterExpressionMap, fieldName: ${fieldName}")
             if (skipFieldNames.indexOf(fieldName) < 0) {
                 if( this.fieldMap[fieldName]) {
-                    if (filterExpression) { filterExpress += " AND " }
+                    if (filterExpression) { filterExpression += " AND " }
                     filterExpression += "#${fieldName} = :${fieldName} "
                     logger.info("in getDynamoDBFilterExpressionMap, filterExpression: ${filterExpression}")
                     attrNameMap.put("#" + fieldName, fieldName)

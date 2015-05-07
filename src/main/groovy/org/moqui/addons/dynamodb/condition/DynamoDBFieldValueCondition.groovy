@@ -59,7 +59,9 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
         for(String fieldName in priKeyNames) {
             logger.info("DynamoDBFieldValueCondition(getDynamoDBHashValue), fieldName: ${fieldName}, this.field.fieldName: ${this.field.fieldName}")
             if( fieldName == this.field.fieldName) {
-                retVal =  this.value
+                if(operator == org.moqui.entity.EntityCondition.ComparisonOperator.EQUALS) {
+                     retVal =  this.value
+                }
                 break
             }
         }
@@ -204,13 +206,14 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
         List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
         String indexName, fieldName, fieldValue
         String filterExpression = ""
+        String customExpression = ""
         Map attrNameMap = new HashMap()
         Map attrValueMap = new HashMap()
         for (Node nd in fieldNodes) {
             fieldName = nd."@name"
+            customExpression = ""
             logger.info("in getDynamoDBFilterExpressionMap, fieldName: ${fieldName}, this.field.fieldName: ${this.field.fieldName}")
             if (fieldName == this.field.fieldName && skipFieldNames.indexOf(fieldName) < 0) {
-                    if (filterExpression) { filterExpression += " AND " }
                     String op 
                     switch(this.operator) {
                         case org.moqui.entity.EntityCondition.ComparisonOperator.GREATER_THAN:
@@ -228,8 +231,11 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
                             op = " <= "
                             break
                         case org.moqui.entity.EntityCondition.ComparisonOperator.LIKE:
+                            // FIXME: this needs to use conditional expression function, see http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.SpecifyingConditions.html#ConditionExpressionReference
                             op = com.amazonaws.services.dynamodbv2.model.ComparisonOperator.BEGINS_WITH
                             op = " >= "
+                            customExpression = " contains(#${field}, :${field}) "
+                            //customExpression = " begins_with(#{field}, :{field}) "
                             break
                         case org.moqui.entity.EntityCondition.ComparisonOperator.NOT_EQUAL:
                             op = " <> "
@@ -237,7 +243,12 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
                         default:
                             op = " = "
                     }
-                    filterExpression += "#${field} ${op} :${field} "
+                    if (filterExpression) { filterExpression += " AND " }
+                    if (customExpression) {
+                        filterExpression += customExpression
+                    } else {
+                        filterExpression += "#${field} ${op} :${field} "
+                    }
                     logger.info("in getDynamoDBFilterExpressionMap, filterExpression: ${filterExpression}")
                     attrNameMap.put("#" + this.field.fieldName, this.field.fieldName)
                     attrValueMap.put(":" + this.field.fieldName, this.value)
