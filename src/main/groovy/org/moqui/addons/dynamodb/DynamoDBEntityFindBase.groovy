@@ -416,4 +416,5 @@ class DynamoDBEntityFindBase implements EntityFind {
     Integer getMaxRows() { return null }
     EntityFind resultSetType(int resultSetType) { return null }
     int getResultSetType() { return null }
+    EntityFind searchFormMap(Map inf, String defaultOrderBy, boolean alwaysPaginate) { return null }
 }

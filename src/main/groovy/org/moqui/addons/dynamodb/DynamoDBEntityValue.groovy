@@ -92,7 +92,7 @@ class DynamoDBEntityValue extends EntityValueBase {
     }
 
     @Override
-    void createExtended(ListOrderedSet fieldList, Connection con) {
+    void createExtended(ArrayList<String> fieldList, Connection con) {
     
         EntityDefinition entityDefinition = getEntityDefinition()
         logger.info("In DynamoDBEntityValue.create, fieldList: ${fieldList}")
@@ -131,7 +131,7 @@ class DynamoDBEntityValue extends EntityValueBase {
     }
 
     @Override
-    void updateExtended(List<String> pkFieldList, ListOrderedSet nonPkFieldList, Connection con) {
+    void updateExtended(ArrayList<String> pkFieldList, ArrayList<String> nonPkFieldList, Connection con) {
     
         List <String> fieldList = new ArrayList()
         ListOrderedSet newLOS = new ListOrderedSet(nonPkFieldList)
@@ -401,7 +401,12 @@ class DynamoDBEntityValue extends EntityValueBase {
         // FIXME
         return this
     }
-
+ 
+    EntityValue cloneDbValue(boolean b) {
+        // FIXME
+        return this
+    }
+ 
     Map<String, Object> getValueMap() {
         Map<String, Object> newValueMap = new HashMap()
         Map<String, Object> parentValueMap = super.getValueMap()

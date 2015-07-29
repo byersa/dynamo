@@ -16,7 +16,7 @@ tasks.withType(Compile) {
 
 apply plugin: 'groovy'
 
-sourceCompatibility = '1.6'
+sourceCompatibility = '1.8'
 def moquiDir = file(projectDir.absolutePath + '/../../..')
 def frameworkDir = file(moquiDir.absolutePath + '/framework')
 archivesBaseName = 'dynamo'
@@ -39,7 +39,7 @@ dependencies {
     compile fileTree(dir: frameworkDir.absolutePath + '/lib/fop', includes: ['*.jar'])
     compile fileTree(dir: frameworkDir.absolutePath + '/lib/kie', includes: ['*.jar'])
     compile fileTree(dir: frameworkDir.absolutePath + '/lib/orientdb', includes: ['*.jar'])
-    compile name: 'moqui-framework', version: '1.5.0' // Public Domain
+    compile name: 'moqui-framework', version: '1.5.3' // Public Domain
     compile name: 'aws-java-sdk', version: '1.9.22' // Apache 2.0
     compile name: 'joda-time', version: '2.4' // Apache 2.0
     //compile name: 'jackson-all', version: '1.9.11' // Apache 2.0
