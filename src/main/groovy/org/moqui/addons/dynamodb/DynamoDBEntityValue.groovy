@@ -58,6 +58,7 @@ import com.amazonaws.services.dynamodbv2.document.Table
 import com.amazonaws.services.dynamodbv2.document.PrimaryKey
 import com.amazonaws.services.dynamodbv2.document.spec.GetItemSpec
 import com.amazonaws.services.dynamodbv2.document.GetItemOutcome
+import com.amazonaws.services.dynamodbv2.document.DeleteItemOutcome
 import com.amazonaws.services.dynamodbv2.document.spec.PutItemSpec
 import com.amazonaws.services.dynamodbv2.document.PutItemOutcome
 import com.amazonaws.services.dynamodbv2.document.Item
@@ -133,11 +134,11 @@ class DynamoDBEntityValue extends EntityValueBase {
     @Override
     void updateExtended(ArrayList<String> pkFieldList, ArrayList<String> nonPkFieldList, Connection con) {
     
-        List <String> fieldList = new ArrayList()
-        ListOrderedSet newLOS = new ListOrderedSet(nonPkFieldList)
-        newLOS.addAll(pkFieldList)
-        logger.info("DynamoDBEntityValue.updateExtended, newLOS: ${newLOS}")
-        this.createExtended(newLOS, con)
+        List <String> fieldList = new ArrayList(nonPkFieldList)
+        //ListOrderedSet newLOS = new ListOrderedSet(nonPkFieldList)
+        fieldList.addAll(pkFieldList)
+        logger.info("DynamoDBEntityValue.updateExtended, fieldList: ${fieldList}")
+        this.createExtended(fieldList, con)
 //        DynamoDBEntityValue entValue = null
 //        logger.info("DynamoDBEntityValue.updateExtended (111), this: ${this.toString()}")
 //        EntityDefinition ed = getEntityDefinition() //        if (ed.isViewEntity()) throw new EntityException("Update not yet implemented for view-entity")
@@ -216,22 +217,33 @@ class DynamoDBEntityValue extends EntityValueBase {
 
         DynamoDBEntityValue entValue = null
         try {
+            String rangeValue
+            DeleteItemOutcome deleteItemOutcome 
+            DeleteItemResult deleteItemResult 
             String entName = entityDefinition.getFullEntityName()
-            Map<String, AttributeValue> key = new HashMap()
-            AttributeValue attrVal = whereCondition.getDynamoDBHashValue(entityDefinition)
-            if (attrVal) {
-                //key.setHashKeyElement(attrVal)
+            String hashVal = whereCondition.getDynamoDBHashValue(entityDefinition)
+            //String hashVal = whereCondition.getDynamoDBHashValue(ed)
+            if (hashVal) {
+                DynamoDB dynamoDB = ddf.getDatabase()
+                Table table = dynamoDB.getTable(entName)
+                String hashFieldName = entityDefinition.getFieldNames(true, false, false)[0]
+                rangeValue = whereCondition.getDynamoDBRangeValue(entityDefinition)
+                if (rangeValue) {
+                    String rangeFieldName = DynamoDBUtils.getRangeFieldName(entityDefinition)
+                    deleteItemOutcome = table.deleteItem(hashFieldName, hashVal, rangeFieldName, rangeValue)
+                } else {
+                    deleteItemOutcome = table.deleteItem(hashFieldName, hashVal)
+                }
+                logger.info("In DynamoDBEntityValue.delete, deleteItemOutcome: ${deleteItemOutcome}")
+                //deleteItemResult = deleteItemOutcome.getDeleteItemResult()
             } else {
                 throw(new EntityException("In update, the condition ${whereCondition} for the entity: ${entName} does not specify a value for the primary key."))
             }
-            AttributeValue attrVal2 = whereCondition.getDynamoDBRangeValue(entityDefinition)
+            //AttributeValue attrVal2 = whereCondition.getDynamoDBRangeValue(entityDefinition)
             // TODO: check to see if entity requires a range value to define the primary key
-            if (attrVal2) {
+            //if (attrVal2) {
                 //key.setRangeKeyElement(attrVal2)
-            }
-            AmazonDynamoDBClient client = ddf.getDatabase()
-            DeleteItemRequest deleteItemRequest = new DeleteItemRequest().withTableName(entName).withKey(key);
-            DeleteItemResult result = client.deleteItem(deleteItemRequest)     
+            //}
         } catch(ProvisionedThroughputExceededException e1) {
             throw new EntityException(e1.getMessage())
         } catch(ConditionalCheckFailedException e2) {
