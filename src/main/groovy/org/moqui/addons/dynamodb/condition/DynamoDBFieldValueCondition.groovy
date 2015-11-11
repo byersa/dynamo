@@ -203,7 +203,7 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
         Map retMap
         logger.info("in getDynamoDBFilterExpressionMap, skipFieldNames: ${skipFieldNames}")
             logger.info("in getDynamoDBFilterExpressionMap, value: ${value}, this.field.fieldName: ${this.field.fieldName}")
-        List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
+        List<Node> fieldNodes = ed.getFieldNodes(true, true, false)
         String indexName, fieldName, fieldValue
         String filterExpression = ""
         String customExpression = ""
