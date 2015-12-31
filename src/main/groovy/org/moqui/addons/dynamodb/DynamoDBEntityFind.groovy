@@ -312,17 +312,34 @@ class DynamoDBEntityFind extends DynamoDBEntityFindBase {
           EntityList entList = new EntityListImpl(this.efi)
           try {
                 Index index = table.getIndex(indexValMap.indexName)
-                logger.info("DynamoDBEntityFind.list index: ${index}")
-                QuerySpec querySpec = new QuerySpec().withHashKey(indexValMap.indexFieldName, indexValMap.indexFieldValue)
+                logger.info("DynamoDBEntityFind.queryIndex index: ${index}")
+                String exp = indexValMap.indexFieldName + " = :" + indexValMap.indexFieldName
+                List<String> fieldNameList = new ArrayList<String>()
+                ed.getAllFieldNames(false).each {fldName ->
+                    fieldNameList.add(fldName)
+                }
+                logger.info("DynamoDBEntityFind.queryIndex fieldNameList: ${fieldNameList}")
+                //String[] fieldNameArr = new String[fieldNameList.size()];
+                //fieldNameArr = fieldNameList.toArray(fieldNameArr);
+                //logger.info("DynamoDBEntityFind.queryIndex fieldNameArr: ${fieldNameArr}")
+
+                QuerySpec querySpec = new QuerySpec().withKeyConditionExpression(exp)
+                querySpec = querySpec.withProjectionExpression(fieldNameList.join(","))
                 skipFieldNames.add(indexValMap.indexFieldName)
+                Map valueMap = new HashMap()
+                valueMap.put(":" + indexValMap.indexFieldName, indexValMap.indexFieldValue)
                 Map expressMap = whereCondition.getDynamoDBFilterExpressionMap(ed, skipFieldNames)
                 if (expressMap) {
-                    logger.info("DynamoDBEntityFind.list expressMap: ${expressMap}")
+                    logger.info("DynamoDBEntityFind.queryIndex expressMap: ${expressMap}")
+                    valueMap.putAll(expressMap.valueMap)
                     querySpec = querySpec
                                  .withFilterExpression(expressMap.filterExpression)
                                  .withNameMap(expressMap.nameMap)
-                                 .withValueMap(expressMap.valueMap)
+                                 .withValueMap(valueMap)
+                } else {
+                    querySpec = querySpec.withValueMap(valueMap)
                 }
+                logger.info("DynamoDBEntityFind.queryIndex valueMap(1): ${valueMap}")
                 ItemCollection <QueryOutcome> queryOutcomeList = index.query(querySpec)
                 logger.info("DynamoDBEntityFind.list queryOutcomeList: ${queryOutcomeList}")
                 Map<java.lang.String,java.lang.Object> itemAsMap
@@ -332,6 +349,12 @@ class DynamoDBEntityFind extends DynamoDBEntityFindBase {
                         DynamoDBEntityValue entValue = ddf.makeEntityValue(entName) 
                         entValue.setAll(itemAsMap)
                         entList.add(entValue)
+//                        if(indexValMap.indexFieldName == "parcelNum") {
+//                        GetItemSpec getItemSpec2 = new GetItemSpec()
+//                        getItemSpec2 = getItemSpec2.withPrimaryKey("propertyId", item.propertyId)
+//                        Item item2 = table.getItem(getItemSpec2)
+//                        logger.info("DynamoDBEntityFind.queryIndex item2: ${item2.asMap()}")
+//                        }
                 }
             
         } catch(ProvisionedThroughputExceededException e1) {
