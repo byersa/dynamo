@@ -195,4 +195,10 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
     String toString() {
         return this.fieldMap
     }
+
+    // Dummied out calls
+    void readExternal(java.io.ObjectInput obj) { return }
+    boolean mapMatchesAny(java.util.Map obj) { return null }
+    void writeExternal(java.io.ObjectOutput obj) { return }
+
 }

@@ -10,11 +10,33 @@
  * "work for hire", who hereby disclaims any copyright to the same.
  */
 
-tasks.withType(Compile) {
+tasks.withType(JavaCompile) {
     options.compilerArgs << "-Xlint:unchecked"
 }
 
 apply plugin: 'groovy'
+
+apply plugin: 'com.github.ben-manes.versions'
+
+buildscript {
+  repositories { jcenter() }
+  dependencies { classpath 'com.github.ben-manes:gradle-versions-plugin:0.12.0' }
+}
+
+dependencyUpdates.resolutionStrategy = {
+  componentSelection { rules ->
+    rules.all { ComponentSelection selection ->
+      boolean rejected = ['alpha', 'beta', 'rc', 'cr', 'm'].any { qualifier ->
+        selection.candidate.version ==~ /(?i).*[.-]${qualifier}[.\d-]*/
+      }
+      if (rejected) {
+        selection.reject('Release candidate')
+      }
+    }
+  }
+}
+
+//import org.ajoberstar.grgit.*
 
 sourceCompatibility = '1.8'
 def moquiDir = file(projectDir.absolutePath + '/../../..')
@@ -22,27 +44,91 @@ def frameworkDir = file(moquiDir.absolutePath + '/framework')
 archivesBaseName = 'dynamo'
 //sourceSets.main.output.classesDir = file(projectDir.absolutePath + '/classes' )
 
-        logger.lifecycle("moquiDir: ${moquiDir}")
 // maybe in the future: repositories { mavenCentral() }
 repositories {
-    flatDir name: 'locallib', dirs: projectDir.absolutePath + '/lib'
     flatDir name: 'frameworklib', dirs: frameworkDir.absolutePath + '/lib'
-    flatDir name: 'camellib', dirs: frameworkDir.absolutePath + '/lib/camel'
-    flatDir name: 'searchlib', dirs: frameworkDir.absolutePath + '/lib/search'
+    //flatDir name: 'camellib', dirs: frameworkDir.absolutePath + '/lib/camel'
+    //flatDir name: 'searchlib', dirs: frameworkDir.absolutePath + '/lib/search'
     flatDir name: 'moquiLib', dirs: frameworkDir.absolutePath + '/build/libs'
+    flatDir name: 'locallib', dirs: projectDir.absolutePath + '/lib'
+    jcenter() // http://jcenter.bintray.com
+}
+
+sourceSets {
+    api
 }
 
 dependencies {
-    compile fileTree(dir: frameworkDir.absolutePath + '/lib', includes: ['*.jar'])
-    compile fileTree(dir: frameworkDir.absolutePath + '/lib/camel', includes: ['*.jar'])
-    compile fileTree(dir: frameworkDir.absolutePath + '/lib/search', includes: ['*.jar'])
-    compile fileTree(dir: frameworkDir.absolutePath + '/lib/fop', includes: ['*.jar'])
-    compile fileTree(dir: frameworkDir.absolutePath + '/lib/kie', includes: ['*.jar'])
-    compile fileTree(dir: frameworkDir.absolutePath + '/lib/orientdb', includes: ['*.jar'])
-    compile name: 'moqui-framework', version: '1.5.3' // Public Domain
-    compile name: 'aws-java-sdk', version: '1.10.14' // Apache 2.0
-    //compile name: 'joda-time', version: '2.4' // Apache 2.0
-    //compile name: 'jackson-all', version: '1.9.11' // Apache 2.0
+    //compile project(":framework")
+    apiCompile 'org.codehaus.groovy:groovy-all:2.4.6' // Apache 2.0
+    compile 'org.codehaus.groovy:groovy-all:2.4.6' // Apache 2.0
+
+    compile name: 'moqui-framework', version: '2.0.0'
+
+    compile name: 'aws-java-sdk', version: '1.10.14'
+    compile 'org.slf4j:slf4j-api:1.7.21'
+    // ========== Local (flatDir) libraries in framework/lib ==========
+
+    // NOTE: this is a moqui-specific build to handle log4j2
+    compile 'org.owasp.esapi:esapi-moqui:2.1.0' // New BSD
+    // Bitronix Transaction Manager (the default internal tx mgr; custom build from source as 3.0.0 not yet released)
+    compile 'org.codehaus.btm:btm:3.0.0-SNAPSHOT' // Apache 2.0
+    // Bitronix depends on javassist (as does OrientDB, etc)
+    compile 'org.javassist:javassist:3.20.0-GA' // Apache 2.0
+
+    compile name: 'cups4j', version: '0.6.4' // LGPL <== NOTE!
+
+    // javax.rules, needed for Drools
+    compile 'jsr94:jsr94:1.1' // ???
+
+    // Mylyn Wikitext: only older versions found in jcenter or mvnrepository
+    compile name: 'org.eclipse.mylyn.wikitext.core_1.8.0.I20121130-0624', version: '' // EPL
+    compile name: 'org.eclipse.mylyn.wikitext.confluence.core_1.8.0.I20121130-0624', version: '' // EPL
+    compile name: 'org.eclipse.mylyn.wikitext.mediawiki.core_1.8.0.I20121130-0624', version: '' // EPL
+    compile name: 'org.eclipse.mylyn.wikitext.textile.core_1.8.0.I20121130-0624', version: '' // EPL
+    compile name: 'org.eclipse.mylyn.wikitext.tracwiki.core_1.8.0.I20121130-0624', version: '' // EPL
+    compile name: 'org.eclipse.mylyn.wikitext.twiki.core_1.8.0.I20121130-0624', version: '' // EPL
+
+    // ========== Libraries from jcenter ==========
+
+    compile('org.owasp.antisamy:antisamy:1.5.3') { // New BSD
+        exclude group: 'xml-apis' // can't exclude batik-ext but has some same classes as xml-apis so exclude that
+    }
+
+    // Atomikos Transaction Manager
+    compile 'com.atomikos:transactions:4.0.3' // Apache 2.0
+    compile 'com.atomikos:transactions-jdbc:4.0.3' // Apache 2.0
+    compile 'com.atomikos:transactions-jta:4.0.3' // Apache 2.0
+
+    // Apache Commons
+    compile 'org.apache.commons:commons-csv:1.4' // Apache 2.0
+    compile 'org.apache.commons:commons-email:1.4' // Apache 2.0
+    compile 'commons-beanutils:commons-beanutils:1.9.2' // Apache 2.0
+    compile 'commons-codec:commons-codec:1.10' // Apache 2.0
+    compile 'commons-collections:commons-collections:3.2.2' // Apache 2.0
+    compile module('commons-configuration:commons-configuration:1.10') // Apache 2.0
+    compile 'commons-digester:commons-digester:2.1' // Apache 2.0
+    compile 'commons-fileupload:commons-fileupload:1.3.2' // Apache 2.0
+    compile 'commons-io:commons-io:2.5' // Apache 2.0
+    compile 'commons-lang:commons-lang:2.6' // Apache 2.0
+    compile 'commons-logging:commons-logging:1.2' // Apache 2.0
+    compile 'commons-validator:commons-validator:1.5.1' // Apache 2.0
+
+    apiCompile 'org.apache.geronimo.specs:geronimo-jta_1.1_spec:1.1.1' // Apache 2.0
+    compile 'org.apache.geronimo.specs:geronimo-jta_1.1_spec:1.1.1' // Apache 2.0
+
+    compile 'org.apache.geronimo.specs:geronimo-j2ee-connector_1.5_spec:2.0.0' // Apache 2.0
+    compile 'org.apache.geronimo.specs:geronimo-jms_1.1_spec:1.1.1' // Apache 2.0
+
+    apiCompile 'javax.servlet:javax.servlet-api:3.1.0'
+    compile 'javax.servlet:javax.servlet-api:3.1.0'
+
+    compile 'org.apache.httpcomponents:httpclient:4.5.2' // Apache 2.0
+    compile 'org.apache.httpcomponents:httpcore:4.4.4' // Apache 2.0
+
+    // JCache (javax.cache)
+    apiCompile 'javax.cache:cache-api:1.0.0' // ?
+    compile 'javax.cache:cache-api:1.0.0' // ?
 }
 
 // by default the Java plugin runs test on build, change to not do that (only run test if explicit task)
@@ -73,6 +159,7 @@ jar {
     destinationDir = file(projectDir.absolutePath + '/lib' )
     enabled = true
     appendix = 'dynamodb'
+    version = '2.0.0'
     manifest { attributes 'Implementation-Title': 'DynamoDB Entity', 'Implementation-Version': '1.0.0' }
     from sourceSets.main.output
 }

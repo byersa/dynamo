@@ -98,7 +98,6 @@ class DynamoDBDatasourceFactory implements EntityDatasourceFactory {
 
     DynamoDBDatasourceFactory() { }
 
-    @Override
     EntityDatasourceFactory init(EntityFacade ef, Node datasourceNode, String tenantId) {
         // local fields
         this.efi = (EntityFacadeImpl) ef
@@ -291,4 +290,8 @@ class DynamoDBDatasourceFactory implements EntityDatasourceFactory {
                     logger.info("isActive: ${createTableResult.getTableDescription()}")
         return
     }
+
+    // Dummied out methods
+    boolean checkTableExists(java.lang.String s) {return null}
+    EntityDatasourceFactory init(org.moqui.entity.EntityFacade ef, org.moqui.util.MNode nd, java.lang.String s) {return}
 }

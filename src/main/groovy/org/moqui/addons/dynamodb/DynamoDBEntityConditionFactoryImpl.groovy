@@ -253,5 +253,8 @@ class DynamoDBEntityConditionFactoryImpl implements EntityConditionFactory {
         // default return false
         return false
     }
+
+    EntityCondition getTrueCondition() { return null }
+    EntityCondition makeCondition(java.util.List lst, java.lang.String s, java.lang.String s2, java.lang.String s3) {return null}
 }
 

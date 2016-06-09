@@ -28,8 +28,7 @@ import org.moqui.entity.EntityException
 import org.moqui.entity.EntityList
 import org.moqui.entity.EntityListIterator
 import org.moqui.impl.context.ArtifactExecutionInfoImpl
-import org.moqui.impl.context.CacheImpl
-import net.sf.ehcache.Element
+import javax.cache.Cache
 import org.moqui.impl.entity.dynamodb.condition.DynamoDBEntityConditionImplBase
 import org.moqui.impl.entity.dynamodb.DynamoDBEntityConditionFactoryImpl
 
@@ -417,4 +416,7 @@ class DynamoDBEntityFindBase implements EntityFind {
     EntityFind resultSetType(int resultSetType) { return null }
     int getResultSetType() { return null }
     EntityFind searchFormMap(Map inf, String defaultOrderBy, boolean alwaysPaginate) { return null }
+ @Override
+    Map<String, Object> oneMaster(String name) { return null }
+    List<Map<String, Object>> listMaster(String name) { return null }
 }
