@@ -1,5 +1,5 @@
-//include "framework"
-//project(":framework").projectDir = file "../../../framework"
+include "framework"
+project(":framework").projectDir = new File("../../../framework")
 
-//println "in dynamo settings.gradle ${project(':framework').projectDir}"
+println "in dynamo settings.gradle ${project(':framework').projectDir}"
 

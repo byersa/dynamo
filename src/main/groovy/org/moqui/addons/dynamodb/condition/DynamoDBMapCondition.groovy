@@ -13,9 +13,13 @@ import com.amazonaws.services.dynamodbv2.model.Condition
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
 import com.amazonaws.services.dynamodbv2.document.RangeKeyCondition
 
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import org.moqui.util.MNode 
+
 class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
 
-    protected final static org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DynamoDBMapCondition.class)
+    protected final static Logger logger = LoggerFactory.getLogger(DynamoDBMapCondition.class)
     
     protected Class internalClass = null
     protected Map<String, ?> fieldMap
@@ -65,12 +69,12 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
     Map getDynamoDBFilterExpressionMap(EntityDefinition ed, List skipFieldNames) {
         Map retMap
         logger.info("in getDynamoDBFilterExpressionMap, skipFieldNames: ${skipFieldNames}")
-        List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
+        List<MNode> fieldNodes = ed.getFieldNodes(false, true, false)
         String indexName, fieldName, fieldValue
         String filterExpression = ""
         Map attrNameMap = new HashMap()
         Map attrValueMap = new HashMap()
-        for (Node nd in fieldNodes) {
+        for (MNode nd in fieldNodes) {
             fieldName = nd."@name"
             logger.info("in getDynamoDBFilterExpressionMap, fieldName: ${fieldName}")
             if (skipFieldNames.indexOf(fieldName) < 0) {
@@ -98,10 +102,10 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
          
          Map <String, String> retVal
                         logger.info("DynamoDBMapCondition, getDynamoDBIndexValue, ed.entityNode: ${ed.entityNode}")
-                for (Node indexNode in ed.entityNode."index") {
+                for (MNode indexNode in ed.entityNode."index") {
                         logger.info("DynamoDBMapCondition, getDynamoDBIndexValue, indexNode: ${indexNode}")
                     String indexFieldName
-                    for (Node indexFieldNode in indexNode."index-field") {
+                    for (MNode indexFieldNode in indexNode."index-field") {
                         indexFieldName = indexFieldNode."@name"
                         logger.info("DynamoDBMapCondition, getDynamoDBIndexValue, indexFieldName: ${indexFieldName}")
                         if( this.fieldMap[indexFieldName]) {
@@ -130,9 +134,9 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
     }
 
     String getDynamoDBRangeValue(EntityDefinition ed) {
-        List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
+        List<MNode> fieldNodes = ed.getFieldNodes(false, true, false)
         String indexName, fieldName, retVal = null
-            for (Node nd in fieldNodes) {
+            for (MNode nd in fieldNodes) {
                 //indexName = nd."@index"
                 if (nd."@is-range" == "true") {
                     fieldName = nd."@name"
@@ -147,12 +151,12 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
 
 
     Condition getDynamoDBCondition(EntityDefinition ed) {
-        List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
+        List<MNode> fieldNodes = ed.getFieldNodes(false, true, false)
         String indexName, fieldName
         Condition retVal = null
         com.amazonaws.services.dynamodbv2.model.ComparisonOperator compOp = null
         AttributeValue attrVal = null
-            for (Node nd in fieldNodes) {
+            for (MNode nd in fieldNodes) {
                 if (nd."@is-range" == "true") {
                     fieldName = nd."@name"
         logger.info("DynamoDBMapCondition(64), indexName: ${indexName},fieldName: ${fieldName}, ${fieldMap}")
@@ -171,11 +175,11 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
     }
 
     RangeKeyCondition getRangeCondition(EntityDefinition ed) {
-        List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
+        List<MNode> fieldNodes = ed.getFieldNodes(false, true, false)
         String indexName, fieldName
         RangeKeyCondition rangeCond = null
         String attrVal = null
-            for (Node nd in fieldNodes) {
+            for (MNode nd in fieldNodes) {
                 if (!rangeCond && nd."@is-range") {
                     fieldName = nd."@name"
                         logger.info("in getRangeCondition, fieldName: ${fieldName}, value: ${this.fieldMap[fieldName]}")

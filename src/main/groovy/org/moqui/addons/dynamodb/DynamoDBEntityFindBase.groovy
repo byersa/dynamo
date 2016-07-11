@@ -32,8 +32,12 @@ import javax.cache.Cache
 import org.moqui.impl.entity.dynamodb.condition.DynamoDBEntityConditionImplBase
 import org.moqui.impl.entity.dynamodb.DynamoDBEntityConditionFactoryImpl
 
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import org.moqui.util.MNode 
+
 class DynamoDBEntityFindBase implements EntityFind {
-    protected final static org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DynamoDBEntityFindBase.class)
+    protected final static Logger logger = LoggerFactory.getLogger(DynamoDBEntityFindBase.class)
 
     protected final EntityFacadeImpl efi
 
@@ -261,7 +265,7 @@ class DynamoDBEntityFindBase implements EntityFind {
     int getPageIndex() { return offset == null ? 0 : offset/getPageSize() }
     int getPageSize() { return limit ?: 20 }
 
-    EntityFind findNode(Node node) {
+    EntityFind findNode(MNode node) {
         ExecutionContext ec = this.efi.ecfi.executionContext
 
         this.entity((String) node["@entity-name"])
@@ -270,29 +274,29 @@ class DynamoDBEntityFindBase implements EntityFind {
         if (node["@distinct"]) this.distinct(node["@distinct"] == "true")
         if (node["@offset"]) this.offset(node["@offset"] as Integer)
         if (node["@limit"]) this.limit(node["@limit"] as Integer)
-        for (Node sf in node["select-field"]) this.selectField((String) sf["@field-name"])
-        for (Node ob in node["order-by"]) this.orderBy((String) ob["@field-name"])
+        for (MNode sf in node["select-field"]) this.selectField((String) sf["@field-name"])
+        for (MNode ob in node["order-by"]) this.orderBy((String) ob["@field-name"])
 
         if (!this.getUseCache()) {
-            for (Node df in node["date-filter"])
+            for (MNode df in node["date-filter"])
                 this.condition(ec.entity.conditionFactory.makeConditionDate((String) df["@from-field-name"] ?: "fromDate",
                         (String) df["@thru-field-name"] ?: "thruDate",
                         (df["@valid-date"] ? ec.resource.evaluateContextField((String) df["@valid-date"], null) as Timestamp : ec.user.nowTimestamp)))
         }
 
-        for (Node ecn in node["econdition"])
+        for (MNode ecn in node["econdition"])
             this.condition(((DynamoDBEntityConditionFactoryImpl) conditionFactory).makeActionCondition(ecn))
-        for (Node ecs in node["econditions"])
+        for (MNode ecs in node["econditions"])
             this.condition(((DynamoDBEntityConditionFactoryImpl) conditionFactory).makeActionConditions(ecs))
-        for (Node eco in node["econdition-object"])
+        for (MNode eco in node["econdition-object"])
             this.condition((EntityCondition) ec.resource.evaluateContextField((String) eco["@field"], null))
 
         if (node["search-form-inputs"]) {
-            Node sfiNode = (Node) node["search-form-inputs"][0]
+            MNode sfiNode = (MNode) node["search-form-inputs"][0]
             searchFormInputs((String) sfiNode["@input-fields-map"], (String) sfiNode["@default-order-by"], (sfiNode["@paginate"] ?: "true") as boolean)
         }
         if (node["having-econditions"]) {
-            for (Node havingCond in node["having-econditions"])
+            for (MNode havingCond in node["having-econditions"])
                 this.havingCondition(conditionFactory.makeActionCondition(havingCond))
         }
 
@@ -416,6 +420,16 @@ class DynamoDBEntityFindBase implements EntityFind {
     EntityFind resultSetType(int resultSetType) { return null }
     int getResultSetType() { return null }
     EntityFind searchFormMap(Map inf, String defaultOrderBy, boolean alwaysPaginate) { return null }
+    EntityFind searchFormMap(Map<String, Object> inputFieldsMap, Map<String, Object> defaultParameters, String defaultOrderBy, boolean alwaysPaginate) { return null }
+
+    boolean getHasCondition() {
+         if (simpleAndMap != null && simpleAndMap.size() > 0) return true
+         if (whereEntityCondition != null) return true
+         return false
+     }
+
+    boolean getHasHavingCondition() { havingEntityCondition != null }
+
  @Override
     Map<String, Object> oneMaster(String name) { return null }
     List<Map<String, Object>> listMaster(String name) { return null }

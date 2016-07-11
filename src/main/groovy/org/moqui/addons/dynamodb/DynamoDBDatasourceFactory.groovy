@@ -69,6 +69,9 @@ import com.amazonaws.services.dynamodbv2.model.Projection
 import com.amazonaws.services.dynamodbv2.model.ProjectionType
 
 import com.amazonaws.services.dynamodbv2.document.DynamoDB
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import org.moqui.util.MNode 
 
 /**
  * To use this:
@@ -84,10 +87,10 @@ import com.amazonaws.services.dynamodbv2.document.DynamoDB
  *      group-name="transactional_nosql"
  */
 class DynamoDBDatasourceFactory implements EntityDatasourceFactory {
-    protected final static org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DynamoDBDatasourceFactory.class)
+    protected final static Logger logger = LoggerFactory.getLogger(DynamoDBDatasourceFactory.class)
 
     protected EntityFacadeImpl efi
-    protected Node datasourceNode
+    protected MNode datasourceNode
     protected String tenantId
 
     protected String uri
@@ -96,50 +99,25 @@ class DynamoDBDatasourceFactory implements EntityDatasourceFactory {
     protected AmazonDynamoDBClient dynamoDBClient
     protected DynamoDB dynamoDB
 
-    DynamoDBDatasourceFactory() { }
+    DynamoDBDatasourceFactory() { 
+    }
 
-    EntityDatasourceFactory init(EntityFacade ef, Node datasourceNode, String tenantId) {
+    EntityDatasourceFactory init(org.moqui.entity.EntityFacade ef, org.moqui.util.MNode nd, java.lang.String s) {
         // local fields
         this.efi = (EntityFacadeImpl) ef
         this.datasourceNode = datasourceNode
         this.tenantId = tenantId
 
-        // init the DataSource
-        EntityValue tenant = null
-        EntityFacadeImpl defaultEfi = null
-        if (this.tenantId != "DEFAULT") {
-            defaultEfi = efi.ecfi.getEntityFacade("DEFAULT")
-            tenant = defaultEfi.makeFind("moqui.tenant.Tenant").condition("tenantId", this.tenantId).one()
-        }
-
-        EntityValue tenantDataSource = null
-        EntityList tenantDataSourceXaPropList = null
-        if (tenant != null) {
-            tenantDataSource = defaultEfi.makeFind("moqui.tenant.TenantDataSource").condition("tenantId", this.tenantId)
-                    .condition("entityGroupName", datasourceNode."@group-name").one()
-            tenantDataSourceXaPropList = defaultEfi.makeFind("moqui.tenant.TenantDataSourceXaProp")
-                    .condition("tenantId", this.tenantId).condition("entityGroupName", datasourceNode."@group-name")
-                    .list()
-        }
-
-        Node inlineOtherNode = datasourceNode."inline-other"[0]
-
-        //Properties moquiInitProperties = new Properties()
-        //URL initProps = this.class.getClassLoader().getResource("MoquiInit.properties")
-        //if (initProps != null) { InputStream is = initProps.openStream(); moquiInitProperties.load(is); is.close(); }
-
-        // if there is a system property use that, otherwise from the properties file
-        
         accessKey = System.getProperty("dynamodb.accessKey")
         if(!accessKey) {
            // accessKey = moquiInitProperties.getProperty("moqui.accessKey")
-            accessKey = inlineOtherNode."@dynamodb-accessKey"
+            accessKey = nd.first("inline-other").attribute("dynamodb-accessKey")
         }
 
         secretAccessKey = System.getProperty("dynamodb.secretAccessKey")
         if(!secretAccessKey) {
             //secretAccessKey = moquiInitProperties.getProperty("moqui.secretAccessKey")
-            secretAccessKey = inlineOtherNode."@dynamodb-secretAccessKey"
+            secretAccessKey = nd.first("inline-other").attribute("dynamodb-secretAccessKey")
         }
 
         logger.info("accessKey: ${accessKey}, secretAccessKey: ${secretAccessKey}")
@@ -197,7 +175,7 @@ class DynamoDBDatasourceFactory implements EntityDatasourceFactory {
                 def ed = efi.getEntityDefinition(tableName)
                 ArrayList<AttributeDefinition> attributeDefinitions= new ArrayList()
                 ArrayList<KeySchemaElement> keySchema = new ArrayList()
-                List <Node> fieldNodes = ed.getFieldNodes(true, true, false)
+                List <MNode> fieldNodes = ed.getFieldNodes(true, true, false)
                 String hashFieldName = ""
                 fieldNodes.each() { nd ->
                     logger.info("building node: ${nd}")
@@ -242,8 +220,8 @@ class DynamoDBDatasourceFactory implements EntityDatasourceFactory {
                 def projectionType
                 GlobalSecondaryIndex secondaryIndex 
                 List <GlobalSecondaryIndex> secondaryIndices = new ArrayList()
-                for (Node indexNode in ed.entityNode."index") {
-                    for (Node indexFieldNode in indexNode."index-field") {
+                for (MNode indexNode in ed.entityNode."index") {
+                    for (MNode indexFieldNode in indexNode."index-field") {
                         indexFieldName = indexFieldNode."@name"
                         projectionAttrVal= indexFieldNode."@projection"
                         if (projectionAttrVal && projectionAttrVal == "keys") {
@@ -293,5 +271,4 @@ class DynamoDBDatasourceFactory implements EntityDatasourceFactory {
 
     // Dummied out methods
     boolean checkTableExists(java.lang.String s) {return null}
-    EntityDatasourceFactory init(org.moqui.entity.EntityFacade ef, org.moqui.util.MNode nd, java.lang.String s) {return}
 }

@@ -76,8 +76,12 @@ import com.amazonaws.services.dynamodbv2.document.ScanOutcome
 import com.amazonaws.services.dynamodbv2.document.RangeKeyCondition
 import com.amazonaws.services.dynamodbv2.document.Index
 
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import org.moqui.util.MNode 
+
 class DynamoDBEntityFind extends DynamoDBEntityFindBase {
-    protected final static org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DynamoDBEntityFind.class)
+    protected final static Logger logger = LoggerFactory.getLogger(DynamoDBEntityFind.class)
     protected AmazonDynamoDBClient client
     protected DynamoDB dynamoDB
     protected DynamoDBDatasourceFactory ddf
@@ -348,6 +352,7 @@ class DynamoDBEntityFind extends DynamoDBEntityFindBase {
                         logger.info("DynamoDBEntityFind.list itemAsMap: ${itemAsMap}")
                         DynamoDBEntityValue entValue = ddf.makeEntityValue(entName) 
                         entValue.setAll(itemAsMap)
+                        logger.info("DynamoDBEntityFind.list entValue: ${entValue}")
                         entList.add(entValue)
 //                        if(indexValMap.indexFieldName == "parcelNum") {
 //                        GetItemSpec getItemSpec2 = new GetItemSpec()
@@ -371,6 +376,7 @@ class DynamoDBEntityFind extends DynamoDBEntityFindBase {
             throw new EntityException(e6.getMessage())
         }finally {
         }
+        logger.info("DynamoDBEntityFind.list entList: ${entList}")
         return entList
     }
 

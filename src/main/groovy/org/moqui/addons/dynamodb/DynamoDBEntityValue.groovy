@@ -70,9 +70,12 @@ import java.sql.Connection
 
 import org.moqui.impl.entity.dynamodb.DynamoDBDatasourceFactory
 
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import org.moqui.util.MNode 
 
 class DynamoDBEntityValue extends EntityValueBase {
-    protected final static org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DynamoDBEntityValue.class)
+    protected final static Logger logger = LoggerFactory.getLogger(DynamoDBEntityValue.class)
 
     protected DynamoDBDatasourceFactory ddf
     protected DynamoDBEntityConditionFactoryImpl conditionFactory 
@@ -284,8 +287,8 @@ class DynamoDBEntityValue extends EntityValueBase {
             }
             
             // see if there is a range key defined as a field with the index defined
-            List<Node> fieldNodes = getFieldNodes(false, true, false)
-            for (Node nd in fieldNodes) {
+            List<MNode> fieldNodes = getFieldNodes(false, true, false)
+            for (MNode nd in fieldNodes) {
                 if (nd."@index") {
                     AttributeValue keyAttributeValue = getAttributeValue(nd."@field")
                     key.setRangeKeyElement(keyAttributeValue)
@@ -362,7 +365,7 @@ class DynamoDBEntityValue extends EntityValueBase {
         for(Map.Entry fieldEntry in attributeValueItem) {
             fieldName = fieldEntry.key
                  logger.info("DynamoDBEntityValue.buildEntityValueMap(280) fieldName: ${fieldName}")
-            Node fieldNode = this.getEntityDefinition().getFieldNode(fieldName)
+            MNode fieldNode = this.getEntityDefinition().getFieldNode(fieldName)
             fieldType = fieldNode."@type"
                  logger.info("DynamoDBEntityValue.buildEntityValueMap(282) type: ${fieldType}")
             switch(fieldType) {
@@ -440,7 +443,7 @@ class DynamoDBEntityValue extends EntityValueBase {
     AttributeValue getAttributeValue(fieldName) {
     
         AttributeValue attrVal = new AttributeValue()
-        Node fieldNode = this.getEntityDefinition().getFieldNode(fieldName)
+        MNode fieldNode = this.getEntityDefinition().getFieldNode(fieldName)
         String fieldNodeName = fieldNode."@name"
                  logger.info("DynamoDBEntityValue.getAttributeValue(291) fieldNodeName: ${fieldNodeName}")
         String fieldNodeType = fieldNode."@type"

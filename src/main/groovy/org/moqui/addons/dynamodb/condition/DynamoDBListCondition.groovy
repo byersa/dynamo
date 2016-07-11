@@ -25,8 +25,12 @@ import com.amazonaws.services.dynamodbv2.model.Condition
 
 import com.amazonaws.services.dynamodbv2.document.RangeKeyCondition
 
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import org.moqui.util.MNode 
+
 class DynamoDBListCondition extends DynamoDBEntityConditionImplBase {
-    protected final static org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DynamoDBListCondition.class)
+    protected final static Logger logger = LoggerFactory.getLogger(DynamoDBListCondition.class)
     protected Class localClass = null
     protected List<DynamoDBEntityConditionImplBase> conditionList
     protected EntityCondition.JoinOperator operator
@@ -115,11 +119,11 @@ class DynamoDBListCondition extends DynamoDBEntityConditionImplBase {
     }
 
     Condition getDynamoDBCondition(EntityDefinition ed) {
-        List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
+        List<MNode> fieldNodes = ed.getFieldNodes(false, true, false)
         String indexName, indexFieldName
         List<ComparisonOperator> rangeOperators = new LinkedList()
         List<AttributeValue> attributeValues = new LinkedList()
-        for (Node nd in fieldNodes) {
+        for (MNode nd in fieldNodes) {
             indexName = nd."@index"
             if (nd."@is_range") {
                 indexFieldName = nd."@name"

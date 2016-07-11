@@ -13,14 +13,18 @@ import com.amazonaws.services.dynamodbv2.model.AttributeAction
 import com.amazonaws.services.dynamodbv2.model.Condition
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator
 
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import org.moqui.util.MNode 
+
 class DynamoDBUtils {
 
-    protected final static org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DynamoDBUtils.class)
+    protected final static Logger logger = LoggerFactory.getLogger(DynamoDBUtils.class)
     
     static AttributeValue getAttributeValue(String fieldName, Map<String,?>valueMap, EntityDefinition ed) {
     
         AttributeValue attrVal = new AttributeValue()
-        Node fieldNode = ed.getFieldNode(fieldName)
+        MNode fieldNode = ed.getFieldNode(fieldName)
         String fieldNodeName = fieldNode."@name"
                  logger.info("DynamoDBUtils.getAttributeValue(291) fieldNodeName: ${fieldNodeName}")
         String fieldNodeType = fieldNode."@type"
@@ -84,7 +88,7 @@ class DynamoDBUtils {
     static AttributeValueUpdate getAttributeValueUpdate(String fieldName, Map<String,?>valueMap, EntityDefinition ed) {
     
         AttributeValueUpdate attrVal = new AttributeValueUpdate()
-        Node fieldNode = ed.getFieldNode(fieldName)
+        MNode fieldNode = ed.getFieldNode(fieldName)
         String fieldNodeName = fieldNode."@name"
                  logger.info("DynamoDBUtils.getAttributeValue(291) fieldNodeName: ${fieldNodeName}")
         String fieldNodeType = fieldNode."@type"
@@ -191,8 +195,8 @@ class DynamoDBUtils {
     static String getRangeFieldName(EntityDefinition ed) {
         
         String rangeFieldName
-        List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
-            for (Node nd in fieldNodes) {
+        List<MNode> fieldNodes = ed.getFieldNodes(false, true, false)
+            for (MNode nd in fieldNodes) {
                 if (nd."@is-range" == "true") {
                     rangeFieldName = nd."@name"
                     break

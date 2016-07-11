@@ -25,9 +25,12 @@ import org.moqui.impl.entity.dynamodb.condition.DynamoDBDateCondition
 import org.moqui.impl.entity.dynamodb.condition.DynamoDBListCondition
 import org.moqui.impl.entity.dynamodb.condition.DynamoDBMapCondition
 import org.moqui.impl.StupidUtilities
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import org.moqui.util.MNode 
 
 class DynamoDBEntityConditionFactoryImpl implements EntityConditionFactory {
-    protected final static org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DynamoDBEntityConditionFactoryImpl.class)
+    protected final static Logger logger = LoggerFactory.getLogger(DynamoDBEntityConditionFactoryImpl.class)
 
     protected final EntityFacadeImpl efi
 
@@ -120,16 +123,16 @@ class DynamoDBEntityConditionFactoryImpl implements EntityConditionFactory {
         }
     }
 
-    EntityCondition makeActionCondition(Node node) {
+    EntityCondition makeActionCondition(MNode node) {
         return makeActionCondition((String) node["@field-name"],
                 (String) node["@operator"] ?: "equals", (String) (node["@from"] ?: node["@field-name"]),
                 (String) node["@value"], (String) node["@to-field-name"], (node["@ignore-case"] ?: "false") == "true",
                 (node["@ignore-if-empty"] ?: "false") == "true", (node["@ignore"] ?: "false") == "true")
     }
 
-    EntityCondition makeActionConditions(Node node) {
+    EntityCondition makeActionConditions(MNode node) {
         List<EntityCondition> condList = new ArrayList()
-        for (Node subCond in node.children()) condList.add(makeActionCondition(subCond))
+        for (MNode subCond in node.children()) condList.add(makeActionCondition(subCond))
         return makeCondition(condList, EntityConditionFactoryImpl.getJoinOperator((String) node["@combine"]))
     }
 

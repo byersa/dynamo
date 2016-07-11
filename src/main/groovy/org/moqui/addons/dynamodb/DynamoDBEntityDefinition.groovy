@@ -16,17 +16,18 @@ import org.moqui.entity.EntityFacade
 import org.moqui.impl.entity.EntityFacadeImpl
 import org.moqui.entity.*
 
+import org.moqui.util.MNode 
 
 class DynamoDBEntityDefinition extends EntityDefinition {
 
-    DynamoDBEntityDefinition(EntityFacadeImpl efi, Node entityNode) {
+    DynamoDBEntityDefinition(EntityFacadeImpl efi, MNode entityNode) {
         super(efi, entityNode)
     }
 
     String getRangeFieldName() {
-        List<Node> fieldNodes = ed.getFieldNodes(false, true, false)
+        List<MNode> fieldNodes = ed.getFieldNodes(false, true, false)
         String fieldName
-        for (Node nd in fieldNodes) {
+        for (MNode nd in fieldNodes) {
                 if (nd."@is-range" == "true") {
                     fieldName = nd."@name"
                 }
