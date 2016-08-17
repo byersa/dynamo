@@ -60,7 +60,7 @@ import com.amazonaws.services.dynamodbv2.model.ScanRequest
 import com.amazonaws.services.dynamodbv2.model.ScanResult
 import com.amazonaws.services.dynamodbv2.model.TableDescription
 import com.amazonaws.services.dynamodbv2.document.Table
-import com.amazonaws.services.dynamodbv2.util.Tables
+import com.amazonaws.services.dynamodbv2.util.TableUtils
 import com.amazonaws.services.dynamodbv2.document.TableCollection
 import com.amazonaws.services.dynamodbv2.model.ListTablesResult
 import com.amazonaws.auth.internal.AWS4SignerUtils
@@ -163,13 +163,21 @@ class DynamoDBDatasourceFactory implements EntityDatasourceFactory {
     void checkAndAddTable(java.lang.String tableName) {
 
             logger.info("checking: ${tableName}")
-            if( !Tables.doesTableExist(dynamoDBClient, tableName)) {
-                this.createTable(tableName)
-            }
+            CreateTableRequest request = this.getCreateTableRequest(tableName)
+            TableUtils.createTableIfNotExists(dynamoDBClient, request)
+//            if( !Tables.doesTableExist(dynamoDBClient, tableName)) {
+//                this.createTable(tableName)
+//            }
         return
     }
 
     void createTable(tableName) {
+        CreateTableRequest request = this.getCreateTableRequest(tableName)
+        CreateTableResult createTableResult = dynamoDBClient.createTable(request)
+                    logger.info("isActive: ${createTableResult.getTableDescription()}")
+    } 
+
+    CreateTableRequest getCreateTableRequest(tableName) {
 
                 logger.info("building: ${tableName}")
                 def ed = efi.getEntityDefinition(tableName)
@@ -264,9 +272,7 @@ class DynamoDBDatasourceFactory implements EntityDatasourceFactory {
                     logger.info("hasSecondaryIndices: ${secondaryIndices}")
                     request.setGlobalSecondaryIndexes(secondaryIndices)
                 }
-                CreateTableResult createTableResult = dynamoDBClient.createTable(request)
-                    logger.info("isActive: ${createTableResult.getTableDescription()}")
-        return
+        return request
     }
 
     // Dummied out methods

@@ -60,7 +60,7 @@ sourceSets {
 
 dependencies {
     compile project(":framework")
-    compile name: 'aws-java-sdk', version: '1.10.14'
+    compile name: 'aws-java-sdk', version: '1.11.26'
 //    apiCompile 'org.codehaus.groovy:groovy-all:2.4.6' // Apache 2.0
 //    compile 'org.codehaus.groovy:groovy-all:2.4.6' // Apache 2.0
 //
