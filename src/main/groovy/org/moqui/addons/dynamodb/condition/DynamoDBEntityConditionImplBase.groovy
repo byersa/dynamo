@@ -51,6 +51,10 @@ abstract class DynamoDBEntityConditionImplBase implements EntityCondition {
         RangeKeyCondition rangeCond = null
         return rangeCond
     }
+ 
+    boolean mapKeysNotContained(java.util.Map mp) {
+        return true;
+    }
 
    @Override
     boolean populateMap(Map<String, ?> map) { return false }

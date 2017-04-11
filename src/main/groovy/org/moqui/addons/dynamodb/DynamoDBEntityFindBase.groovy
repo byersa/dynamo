@@ -19,6 +19,9 @@ import org.moqui.entity.EntityDynamicView
 import org.moqui.entity.EntityCondition
 import org.moqui.impl.entity.condition.ListCondition
 import org.moqui.context.ExecutionContext
+ import org.moqui.etl.SimpleEtl
+ import org.moqui.etl.SimpleEtl.StopException
+  
 import java.sql.Timestamp
 import org.moqui.entity.EntityValue
 import org.moqui.impl.entity.EntityFacadeImpl
@@ -389,7 +392,7 @@ class DynamoDBEntityFindBase implements EntityFind {
         return this.entityDef
     }
 
-    protected boolean shouldCache() {
+    public boolean shouldCache() {
         if (this.dynamicView) return false
         String entityCache = this.getEntityDef().getEntityNode()."@use-cache"
         return ((this.useCache == Boolean.TRUE && entityCache != "never") || entityCache == "true")
@@ -433,4 +436,6 @@ class DynamoDBEntityFindBase implements EntityFind {
  @Override
     Map<String, Object> oneMaster(String name) { return null }
     List<Map<String, Object>> listMaster(String name) { return null }
+    void extract(SimpleEtl etl) {return}
+    EntityFind searchFormMap(java.util.Map mp, java.util.Map mp2, java.lang.String s1, java.lang.String s2, boolean b) {return null}
 }

@@ -83,17 +83,17 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
     }
 
     String getDynamoDBRangeValue(EntityDefinition ed) {
-        List<MNode> fieldNodes = ed.getFieldNodes(false, true, false)
+        ArrayList <MNode> fieldNodes = ed.entityNode.getChildren()
         String indexName, fieldName
         String retVal = null
         def isRange
         
             for (MNode nd in fieldNodes) {
-                fieldName = nd."@name"
-                isRange = nd."@is-range"
+                fieldName = nd.attribute("name")
+                isRange = nd.attribute("is-range")
                 logger.info("DynamoDBFieldValueCondition(100), this.field.fieldName: ${this.field.fieldName},fieldName: ${fieldName}, value: ${value}")
                 logger.info("DynamoDBFieldValueCondition(101), isRange: ${isRange}")
-                if (nd."@is-range" == "true") {
+                if (nd.attribute("is-range") == "true") {
                 //indexName = nd."@index"
                 //if (indexName) {
                     //TODO: check that compare op is "EQUAL"
@@ -108,14 +108,14 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
     }
 
     AttributeValue getDynamoDBRangeAttributeValue(EntityDefinition ed) {
-        List<MNode> fieldNodes = ed.getFieldNodes(false, true, false)
+        ArrayList <MNode> fieldNodes = ed.entityNode.getChildren()
         String indexName, fieldName
         AttributeValue retVal = null
         
             for (MNode nd in fieldNodes) {
-                indexName = nd."@index"
+                indexName = nd.attribute("index")
                 if (indexName) {
-                    fieldName = nd."@name"
+                    fieldName = nd.attribute("name")
         logger.info("DynamoDBFieldValueCondition(66), indexName: ${indexName},fieldName: ${fieldName}, value: ${value}")
                     //TODO: check that compare op is "EQUAL"
                     if (fieldName == this.field.fieldName) {
@@ -129,14 +129,14 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
     }
 
     Condition getDynamoDBCondition(EntityDefinition ed) {
-        List<MNode> fieldNodes = ed.getFieldNodes(false, true, false)
+        ArrayList <MNode> fieldNodes = ed.entityNode.getChildren()
         String indexName, fieldName
         Condition retVal = null
         com.amazonaws.services.dynamodbv2.model.ComparisonOperator compOp = null
         AttributeValue attrVal = null
             for (MNode nd in fieldNodes) {
-                if (nd."@is-range") {
-                    fieldName = nd."@name"
+                if (nd.attribute("is-range") == "true") {
+                    fieldName = nd.attribute("name")
         logger.info("DynamoDBFieldValueCondition(64), indexName: ${indexName},fieldName: ${fieldName}, value: ${value}")
                     //TODO: check that compare op is "EQUAL"
                     if (fieldName == this.field.fieldName) {
@@ -154,14 +154,14 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
     }
 
     RangeKeyCondition getRangeCondition(EntityDefinition ed) {
-        List<MNode> fieldNodes = ed.getFieldNodes(false, true, false)
+        ArrayList <MNode> fieldNodes = ed.entityNode.getChildren()
         String indexName, fieldName
         RangeKeyCondition rangeCond = null
         String attrVal = null
         logger.info("DynamoDBFieldValueCondition , operator: ${operator}, this.field.fieldName: ${this.field.fieldName}, this.value: ${value}")
             for (MNode nd in fieldNodes) {
-                if (nd."@is-range") {
-                    fieldName = nd."@name"
+                if (nd.attribute("is-range") == "true") {
+                    fieldName = nd.attribute("name")
                     //TODO: check that compare op is "EQUAL"
                     if (fieldName == this.field.fieldName) {
                         logger.info("DynamoDBFieldValueCondition , fieldName: ${fieldName}")
@@ -207,14 +207,14 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
         Map retMap
         logger.info("in getDynamoDBFilterExpressionMap, skipFieldNames: ${skipFieldNames}")
             logger.info("in getDynamoDBFilterExpressionMap, value: ${value}, this.field.fieldName: ${this.field.fieldName}")
-        List<MNode> fieldNodes = ed.getFieldNodes(true, true, false)
+        ArrayList <MNode> fieldNodes = ed.entityNode.getChildren()
         String indexName, fieldName, fieldValue
         String filterExpression = ""
         String customExpression = ""
         Map attrNameMap = new HashMap()
         Map attrValueMap = new HashMap()
         for (MNode nd in fieldNodes) {
-            fieldName = nd."@name"
+            fieldName = nd.attribute("name")
             customExpression = ""
             logger.info("in getDynamoDBFilterExpressionMap, fieldName: ${fieldName}, this.field.fieldName: ${this.field.fieldName}")
             if (fieldName == this.field.fieldName && skipFieldNames.indexOf(fieldName) < 0) {
@@ -271,17 +271,19 @@ class DynamoDBFieldValueCondition extends DynamoDBEntityConditionImplBase {
     Map <String, String> getDynamoDBIndexValue(EntityDefinition ed) {
          
          Map <String, String> retVal
-                        logger.info("DynamoDBMapCondition, getDynamoDBIndexValue, ed.entityNode: ${ed.entityNode}")
-                for (MNode indexNode in ed.entityNode."index") {
-                        logger.info("DynamoDBMapCondition, getDynamoDBIndexValue, indexNode: ${indexNode}")
+                        logger.info("DynamoDBFieldValueCondition, getDynamoDBIndexValue, ed.entityNode: ${ed.entityNode}")
+                ArrayList <MNode> fieldNodes = ed.entityNode.children("index")
+                for (MNode indexNode in fieldNodes) {
+                    logger.info("DynamoDBFieldValueCondition, getDynamoDBIndexValue, indexNode: ${indexNode}")
                     String indexFieldName
-                    for (MNode indexFieldNode in indexNode."index-field") {
-                        indexFieldName = indexFieldNode."@name"
-                        logger.info("DynamoDBMapCondition, getDynamoDBIndexValue, indexFieldName: ${indexFieldName}")
+                    ArrayList <MNode> indexFieldNodes = indexNode.children("index-field")
+                    for (MNode indexFieldNode in indexFieldNodes ) {
+                        indexFieldName = indexFieldNode.attribute("name")
+                        logger.info("DynamoDBFieldValueCondition, getDynamoDBIndexValue, indexFieldName: ${indexFieldName}")
                         if( indexFieldName == this.field.fieldName) {
                             retVal = new HashMap()
                             // indexNode."@name" has the secondary index name that DynamoDB knows
-                            retVal.put("indexName", indexNode."@name")
+                            retVal.put("indexName", indexNode.attribute("name"))
                             retVal.put("indexFieldName", indexFieldName)
                             retVal.put("indexFieldValue", value)
                             break

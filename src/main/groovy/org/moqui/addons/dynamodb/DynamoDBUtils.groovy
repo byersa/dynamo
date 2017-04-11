@@ -195,13 +195,13 @@ class DynamoDBUtils {
     static String getRangeFieldName(EntityDefinition ed) {
         
         String rangeFieldName
-        List<MNode> fieldNodes = ed.getFieldNodes(false, true, false)
-            for (MNode nd in fieldNodes) {
-                if (nd."@is-range" == "true") {
-                    rangeFieldName = nd."@name"
+        ArrayList <MNode> fieldNodes = ed.entityNode.getChildren()
+        for (MNode nd in fieldNodes) {
+                if (nd.attribute("is-range") == "true") {
+                    rangeFieldName = nd.attribute("name")
                     break
                 }
-            }
+        }
         return rangeFieldName
     }
 }

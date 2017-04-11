@@ -120,7 +120,7 @@ class DynamoDBEntityFind extends DynamoDBEntityFindBase {
             if (hashVal) {
                 GetItemSpec getItemSpec = new GetItemSpec()
                 logger.info("DynamoDBEntityFind.one (107), hashVal: ${hashVal}")
-                String hashFieldName = ed.getFieldNames(true, false, false)[0]
+                String hashFieldName = ed.getFieldNames(true, false)[0]
                 skipFieldNames.add(hashFieldName)
                 //PrimaryKey primaryKey = new PrimaryKey(hashFieldName, hashVal)
                 //RangeKeyCondition rangeCondition = whereCondition.getRangeCondition(ed)
@@ -207,7 +207,7 @@ class DynamoDBEntityFind extends DynamoDBEntityFindBase {
             String entName = ed.getFullEntityName()
             Table table = dynamoDB.getTable(entName)
             if (hashVal) {
-                String hashFieldName = ed.getFieldNames(true, false, false)[0]
+                String hashFieldName = ed.getFieldNames(true, false)[0]
                 skipFieldNames.add(hashFieldName)
                 QuerySpec querySpec = new QuerySpec().withHashKey(hashFieldName, hashVal)
                 RangeKeyCondition rangeCondition = whereCondition.getRangeCondition(ed)

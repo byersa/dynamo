@@ -25,11 +25,12 @@ class DynamoDBEntityDefinition extends EntityDefinition {
     }
 
     String getRangeFieldName() {
-        List<MNode> fieldNodes = ed.getFieldNodes(false, true, false)
+        //List<MNode> fieldNodes = ed.getFieldNodes(false, true, false)
+        ArrayList <MNode> fieldNodes = ed.entityNode.getChildren()
         String fieldName
         for (MNode nd in fieldNodes) {
-                if (nd."@is-range" == "true") {
-                    fieldName = nd."@name"
+                if (nd.attribute("is-range") == "true") {
+                    fieldName = nd.attribute("name")
                 }
         }
         return fieldName

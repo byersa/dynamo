@@ -1,5 +1,8 @@
 include "framework"
 project(":framework").projectDir = new File("../../../framework")
 
+include "moqui-util"
+project(":moqui-util").projectDir = new File("../../../moqui-util")
+
 println "in dynamo settings.gradle ${project(':framework').projectDir}"
 

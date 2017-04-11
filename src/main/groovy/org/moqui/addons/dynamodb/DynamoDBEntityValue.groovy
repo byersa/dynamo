@@ -23,6 +23,7 @@ import org.moqui.impl.entity.EntityValueBase
 import org.moqui.impl.entity.EntityValueImpl
 import org.moqui.entity.EntityValue
 import org.moqui.entity.EntityFind
+import org.moqui.impl.entity.FieldInfo
 import org.moqui.impl.entity.dynamodb.DynamoDBEntityConditionFactoryImpl
 import org.moqui.impl.entity.dynamodb.condition.DynamoDBEntityConditionImplBase
 import org.moqui.impl.entity.dynamodb.DynamoDBDatasourceFactory
@@ -96,7 +97,7 @@ class DynamoDBEntityValue extends EntityValueBase {
     }
 
     @Override
-    void createExtended(ArrayList<String> fieldList, Connection con) {
+    void createExtended(FieldInfo [] fieldList, Connection con) {
     
         EntityDefinition entityDefinition = getEntityDefinition()
         logger.info("In DynamoDBEntityValue.create, fieldList: ${fieldList}")
@@ -135,7 +136,7 @@ class DynamoDBEntityValue extends EntityValueBase {
     }
 
     @Override
-    void updateExtended(ArrayList<String> pkFieldList, ArrayList<String> nonPkFieldList, Connection con) {
+    void updateExtended(FieldInfo [] pkFieldList, FieldInfo [] nonPkFieldList, Connection con) {
     
         List <String> fieldList = new ArrayList(nonPkFieldList)
         //ListOrderedSet newLOS = new ListOrderedSet(nonPkFieldList)
@@ -159,14 +160,14 @@ class DynamoDBEntityValue extends EntityValueBase {
 //        try {
 //            String entName = ed.getFullEntityName()
 //            logger.info("DynamoDBEntityValue (updateExtended), entName: ${entName}")
-//            EntityFind entityFind = efi.makeFind(entityName)
+//            EntityFind entityFind = efi.find(entityName)
 //            logger.info("DynamoDBEntityValue (updateExtended), entityFind: ${entityFind}")
 //            EntityValue newValue = entityFind.condition(whereCondition).one()
 //            logger.info("DynamoDBEntityValue (updateExtended), newValue: ${newValue}")
 ////            EntityValue newValue = entityFind.condition(this.getValueMap()).one()
 ////            AttributeValue attrVal = whereCondition.getDynamoDBHashValue(ed)
 ////            logger.info("DynamoDBEntityValue (updateExtended), attrVal: ${attrVal.toString()}")
-////            String hashFieldName = ed.getFieldNames(true, false, false)[0]
+////            String hashFieldName = ed.getFieldNames(true, false)[0]
 ////            Map<String, AttributeValue> keyConditions = new  HashMap()
 ////            keyConditions.put(hashFieldName, attrVal)
 ////            Map<String, AttributeValue> key = new HashMap()
@@ -229,7 +230,7 @@ class DynamoDBEntityValue extends EntityValueBase {
             if (hashVal) {
                 DynamoDB dynamoDB = ddf.getDatabase()
                 Table table = dynamoDB.getTable(entName)
-                String hashFieldName = entityDefinition.getFieldNames(true, false, false)[0]
+                String hashFieldName = entityDefinition.getFieldNames(true, false)[0]
                 rangeValue = whereCondition.getDynamoDBRangeValue(entityDefinition)
                 if (rangeValue) {
                     String rangeFieldName = DynamoDBUtils.getRangeFieldName(entityDefinition)
@@ -268,7 +269,7 @@ class DynamoDBEntityValue extends EntityValueBase {
 
         AmazonDynamoDBClient client = ddf.getDatabase()
         try {
-            EntityFind entityFind = efi.makeFind(entityName)
+            EntityFind entityFind = efi.find(entityName)
             EntityValue newValue = entityFind.condition(this.getValueMap()).one()
             this.setAll(newValue)
             return !!newValue
@@ -287,10 +288,11 @@ class DynamoDBEntityValue extends EntityValueBase {
             }
             
             // see if there is a range key defined as a field with the index defined
-            List<MNode> fieldNodes = getFieldNodes(false, true, false)
+            //List<MNode> fieldNodes = getFieldNodes(false, true, false)
+            ArrayList <MNode> fieldNodes = ed.entityNode.getChildren()
             for (MNode nd in fieldNodes) {
-                if (nd."@index") {
-                    AttributeValue keyAttributeValue = getAttributeValue(nd."@field")
+                if (nd.attribute("index")) {
+                    AttributeValue keyAttributeValue = nd.attribute("field")
                     key.setRangeKeyElement(keyAttributeValue)
                     break;
                 }
@@ -319,7 +321,7 @@ class DynamoDBEntityValue extends EntityValueBase {
     
     void buildAttributeValueMap( Map<String, AttributeValue> item, Map<String, Object> valueMap) {
         EntityDefinition entityDefinition = getEntityDefinition()
-        ListOrderedSet fieldNames = entityDefinition.getFieldNames(true, true, true)
+        ListOrderedSet fieldNames = entityDefinition.getFieldNames(true, true)
         for(String fieldName in fieldNames) {
             AttributeValue attrVal = DynamoDBUtils.getAttributeValue(fieldName, valueMap, entityDefinition)
                  logger.info("DynamoDBEntityValue.buildAttributeValueMap(250) attrVal: ${attrVal}")
@@ -336,7 +338,7 @@ class DynamoDBEntityValue extends EntityValueBase {
     
     void buildAttributeValueUpdateMap( Map<String, AttributeValueUpdate> item, Map<String, Object> valueMap) {
         EntityDefinition entityDefinition = getEntityDefinition()
-        ListOrderedSet fieldNames = entityDefinition.getFieldNames(true, true, true)
+        ListOrderedSet fieldNames = entityDefinition.getFieldNames(true, true)
         for(String fieldName in fieldNames) {
             AttributeValueUpdate attrVal = DynamoDBUtils.getAttributeValueUpdate(fieldName, valueMap, entityDefinition)
                  logger.info("DynamoDBEntityValue.buildAttributeValueMap(250) attrVal: ${attrVal}")
@@ -422,9 +424,9 @@ class DynamoDBEntityValue extends EntityValueBase {
         return this
     }
  
-    Map<String, Object> getValueMap() {
-        Map<String, Object> newValueMap = new HashMap()
-        Map<String, Object> parentValueMap = super.getValueMap()
+    HashMap<String, Object> getValueMap() {
+        HashMap<String, Object> newValueMap = new HashMap()
+        HashMap<String, Object> parentValueMap = super.getValueMap()
         logger.info("parentValueMap: ${parentValueMap}")
         parentValueMap.each{k,v ->
             if (v instanceof Timestamp) {

@@ -24,7 +24,7 @@ import org.moqui.impl.entity.dynamodb.condition.DynamoDBConditionField
 import org.moqui.impl.entity.dynamodb.condition.DynamoDBDateCondition
 import org.moqui.impl.entity.dynamodb.condition.DynamoDBListCondition
 import org.moqui.impl.entity.dynamodb.condition.DynamoDBMapCondition
-import org.moqui.impl.StupidUtilities
+import org.moqui.util.ObjectUtilities
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.moqui.util.MNode 
@@ -249,9 +249,9 @@ class DynamoDBEntityConditionFactoryImpl implements EntityConditionFactory {
                 return false
             }
         case ComparisonOperator.LIKE:
-            return StupidUtilities.compareLike(value1, value2)
+            return ObjectUtilities.compareLike(value1, value2)
         case ComparisonOperator.NOT_LIKE:
-            return !StupidUtilities.compareLike(value1, value2)
+            return !ObjectUtilities.compareLike(value1, value2)
         }
         // default return false
         return false

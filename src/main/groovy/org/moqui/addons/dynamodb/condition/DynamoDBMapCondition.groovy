@@ -69,13 +69,13 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
     Map getDynamoDBFilterExpressionMap(EntityDefinition ed, List skipFieldNames) {
         Map retMap
         logger.info("in getDynamoDBFilterExpressionMap, skipFieldNames: ${skipFieldNames}")
-        List<MNode> fieldNodes = ed.getFieldNodes(false, true, false)
+        ArrayList <MNode> fieldNodes = ed.entityNode.getChildren()
         String indexName, fieldName, fieldValue
         String filterExpression = ""
         Map attrNameMap = new HashMap()
         Map attrValueMap = new HashMap()
         for (MNode nd in fieldNodes) {
-            fieldName = nd."@name"
+            fieldName = nd.attribute("name")
             logger.info("in getDynamoDBFilterExpressionMap, fieldName: ${fieldName}")
             if (skipFieldNames.indexOf(fieldName) < 0) {
                 if( this.fieldMap[fieldName]) {
@@ -134,31 +134,30 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
     }
 
     String getDynamoDBRangeValue(EntityDefinition ed) {
-        List<MNode> fieldNodes = ed.getFieldNodes(false, true, false)
+        ArrayList <MNode> fieldNodes = ed.entityNode.getChildren()
         String indexName, fieldName, retVal = null
-            for (MNode nd in fieldNodes) {
-                //indexName = nd."@index"
-                if (nd."@is-range" == "true") {
-                    fieldName = nd."@name"
+        for (MNode nd in fieldNodes) {
+                if (nd.attribute("is-range") == "true") {
+                    fieldName = nd.attribute("name")
         logger.info("DynamoDBMapCondition(139), fieldName: ${fieldName}, ${fieldMap}")
                     retVal =  fieldMap[fieldName]
         logger.info("DynamoDBMapCondition(141), retVal: ${retVal}")
                     break;
                 }
-            }
+        }
         return retVal
     }
 
 
     Condition getDynamoDBCondition(EntityDefinition ed) {
-        List<MNode> fieldNodes = ed.getFieldNodes(false, true, false)
+        ArrayList <MNode> fieldNodes = ed.entityNode.getChildren()
         String indexName, fieldName
         Condition retVal = null
         com.amazonaws.services.dynamodbv2.model.ComparisonOperator compOp = null
         AttributeValue attrVal = null
             for (MNode nd in fieldNodes) {
-                if (nd."@is-range" == "true") {
-                    fieldName = nd."@name"
+                if (nd.attribute("is-range") == "true") {
+                    fieldName = nd.attribute("name")
         logger.info("DynamoDBMapCondition(64), indexName: ${indexName},fieldName: ${fieldName}, ${fieldMap}")
                     //TODO: check that compare op is "EQUAL"
                     if (this.fieldMap[fieldName]) {
@@ -175,14 +174,14 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
     }
 
     RangeKeyCondition getRangeCondition(EntityDefinition ed) {
-        List<MNode> fieldNodes = ed.getFieldNodes(false, true, false)
+        ArrayList <MNode> fieldNodes = ed.entityNode.getChildren()
         String indexName, fieldName
         RangeKeyCondition rangeCond = null
         String attrVal = null
             for (MNode nd in fieldNodes) {
-                if (!rangeCond && nd."@is-range") {
-                    fieldName = nd."@name"
-                        logger.info("in getRangeCondition, fieldName: ${fieldName}, value: ${this.fieldMap[fieldName]}")
+                if (!rangeCond && nd.attribute("is-range") == "true") {
+                    fieldName = nd.attribute("name")
+                    logger.info("in getRangeCondition, fieldName: ${fieldName}, value: ${this.fieldMap[fieldName]}")
                     if (this.fieldMap[fieldName]) {
                         rangeCond = new RangeKeyCondition(fieldName).eq(this.fieldMap[fieldName])
                         logger.info("in getRangeCondition, rangeCond: ${rangeCond}")

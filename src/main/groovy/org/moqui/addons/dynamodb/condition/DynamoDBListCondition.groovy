@@ -119,14 +119,14 @@ class DynamoDBListCondition extends DynamoDBEntityConditionImplBase {
     }
 
     Condition getDynamoDBCondition(EntityDefinition ed) {
-        List<MNode> fieldNodes = ed.getFieldNodes(false, true, false)
+        ArrayList <MNode> fieldNodes = ed.entityNode.getChildren()
         String indexName, indexFieldName
         List<ComparisonOperator> rangeOperators = new LinkedList()
         List<AttributeValue> attributeValues = new LinkedList()
         for (MNode nd in fieldNodes) {
-            indexName = nd."@index"
-            if (nd."@is_range") {
-                indexFieldName = nd."@name"
+            indexName = nd.attribute("index")
+            if (nd.attribute("is-range") == "true") {
+                indexFieldName = nd.attribute("name")
                 break
             }
         }

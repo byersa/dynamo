@@ -20,6 +20,8 @@ import org.moqui.impl.entity.EntityValueImpl
 import org.moqui.impl.entity.dynamodb.DynamoDBEntityValue
 import org.moqui.impl.entity.dynamodb.DynamoDBEntityFind
 
+import org.joda.time.format.*
+
 import javax.sql.DataSource
 
 import org.moqui.entity.*
@@ -102,7 +104,7 @@ class DynamoDBDatasourceFactory implements EntityDatasourceFactory {
     DynamoDBDatasourceFactory() { 
     }
 
-    EntityDatasourceFactory init(org.moqui.entity.EntityFacade ef, org.moqui.util.MNode nd, java.lang.String s) {
+    EntityDatasourceFactory init(org.moqui.entity.EntityFacade ef, org.moqui.util.MNode nd) {
         // local fields
         this.efi = (EntityFacadeImpl) ef
         this.datasourceNode = datasourceNode
@@ -183,18 +185,20 @@ class DynamoDBDatasourceFactory implements EntityDatasourceFactory {
                 def ed = efi.getEntityDefinition(tableName)
                 ArrayList<AttributeDefinition> attributeDefinitions= new ArrayList()
                 ArrayList<KeySchemaElement> keySchema = new ArrayList()
-                List <MNode> fieldNodes = ed.getFieldNodes(true, true, false)
+                //List <MNode> fieldNodes = ed.getFieldNodes(true, true, false)
+                List <String> fieldNames = ed.getFieldNames(true, true)
                 String hashFieldName = ""
-                fieldNodes.each() { nd ->
+                MNode nd
+                fieldNames.each() { nodeName ->
                     logger.info("building node: ${nd}")
-                    String nodeName = nd."@name"
+                    nd = ed.getFieldNode(nodeName)
                     if (ed.isPkField(nodeName)) {
                          logger.info("primaryKey: ${nodeName}")
                          hashFieldName = nodeName
                          keySchema.add(new KeySchemaElement().withAttributeName(nodeName).withKeyType(KeyType.HASH))
                          attributeDefinitions.add(new AttributeDefinition().withAttributeName(nodeName).withAttributeType("S"))
                     }
-                    if (nd."@is-range" == "true") {
+                    if (nd.attribute("is-range") == "true") {
                          logger.info("rangeKey: ${nodeName}")
                          keySchema.add(new KeySchemaElement().withAttributeName(nodeName).withKeyType(KeyType.RANGE))
                          attributeDefinitions.add(new AttributeDefinition().withAttributeName(nodeName).withAttributeType("S"))
@@ -228,17 +232,55 @@ class DynamoDBDatasourceFactory implements EntityDatasourceFactory {
                 def projectionType
                 GlobalSecondaryIndex secondaryIndex 
                 List <GlobalSecondaryIndex> secondaryIndices = new ArrayList()
-                for (MNode indexNode in ed.entityNode."index") {
-                    for (MNode indexFieldNode in indexNode."index-field") {
-                        indexFieldName = indexFieldNode."@name"
-                        projectionAttrVal= indexFieldNode."@projection"
+                ArrayList <MNode> indexList = ed.entityNode.children("index")
+                //ArrayList <MNode> = ed.entityNode.children("index")
+                for (MNode indexNode in indexList) {
+                  
+                    ArrayList <MNode> indexFieldList = indexNode.children("index")
+                    for (MNode indexFieldNode in indexFieldList) {
+                        indexFieldName = indexFieldNode.attribute("name")
+                        projectionAttrVal= indexFieldNode.attribute("projection")
                         if (projectionAttrVal && projectionAttrVal == "keys") {
                              projectionType = ProjectionType.KEYS_ONLY
                         } else {
                              projectionType = ProjectionType.ALL
                         }
                         secondaryIndex = new GlobalSecondaryIndex()
-                            .withIndexName(indexNode."@name")
+                            .withIndexName(indexNode.attribute("name"))
+                            .withProvisionedThroughput(new ProvisionedThroughput()
+                                .withReadCapacityUnits((long) 10)
+                                .withWriteCapacityUnits((long) 1))
+                                .withProjection(new Projection().withProjectionType(projectionType))
+                        ArrayList<KeySchemaElement> indexKeySchema = new ArrayList()
+                          
+//                        indexKeySchema.add(new KeySchemaElement()
+//                              .withAttributeName(hashFieldName)
+//                              .withKeyType(KeyType.HASH))
+                        indexKeySchema.add(new KeySchemaElement()
+                              .withAttributeName(indexFieldName)
+                              .withKeyType(KeyType.HASH))
+                          
+                        secondaryIndex.setKeySchema(indexKeySchema)
+                        secondaryIndices.add(secondaryIndex)
+
+                        attributeDefinitions.add(new AttributeDefinition().withAttributeName(indexFieldName).withAttributeType("S"))
+                    }   
+                }
+ 
+                logger.info("creating: ${tableName}")
+                indexList = ed.entityNode.children("index")
+                for (MNode indexNode in indexList) {
+                    ArrayList <MNode> indexFieldList = indexNode.children("index")
+                    for (MNode indexFieldNode in indexFieldList) {
+                        indexFieldName = indexFieldNode.attribute("name")
+                        projectionAttrVal= indexFieldNode.attribute("projection")
+                        if (projectionAttrVal && projectionAttrVal == "keys") {
+                             projectionType = ProjectionType.KEYS_ONLY
+                        } else {
+                             projectionType = ProjectionType.ALL
+                        }
+                        secondaryIndex = new GlobalSecondaryIndex()
+                            .withIndexName(indexNode.attribute("name"))
                             .withProvisionedThroughput(new ProvisionedThroughput()
                                 .withReadCapacityUnits((long) 10)
                                 .withWriteCapacityUnits((long) 1))

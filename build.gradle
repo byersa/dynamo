@@ -41,6 +41,7 @@ dependencyUpdates.resolutionStrategy = {
 sourceCompatibility = '1.7'
 def moquiDir = file(projectDir.absolutePath + '/../../..')
 def frameworkDir = file(moquiDir.absolutePath + '/framework')
+def moquiUtilDir = file(moquiDir.absolutePath + '/moqui-util')
 archivesBaseName = 'dynamo'
 //sourceSets.main.output.classesDir = file(projectDir.absolutePath + '/classes' )
 
@@ -50,6 +51,7 @@ repositories {
     //flatDir name: 'camellib', dirs: frameworkDir.absolutePath + '/lib/camel'
     //flatDir name: 'searchlib', dirs: frameworkDir.absolutePath + '/lib/search'
     flatDir name: 'moquiLib', dirs: frameworkDir.absolutePath + '/build/libs'
+    flatDir name: 'moquiUtilLib', dirs: moquiUtilDir.absolutePath + '/build/libs'
     flatDir name: 'locallib', dirs: projectDir.absolutePath + '/lib'
     jcenter() // http://jcenter.bintray.com
 }
@@ -61,6 +63,8 @@ sourceSets {
 dependencies {
     compile project(":framework")
     compile name: 'aws-java-sdk', version: '1.11.26'
+    compile name: 'moqui-util', version: '1.0.1'
+    compile name: 'joda-time', version: '2.9.9'
 //    apiCompile 'org.codehaus.groovy:groovy-all:2.4.6' // Apache 2.0
 //    compile 'org.codehaus.groovy:groovy-all:2.4.6' // Apache 2.0
 //

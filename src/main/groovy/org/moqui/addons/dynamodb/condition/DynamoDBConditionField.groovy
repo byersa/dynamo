@@ -13,7 +13,6 @@ package org.moqui.impl.entity.dynamodb.condition
 
 import org.moqui.impl.entity.EntityDefinition
 import org.moqui.impl.entity.condition.ConditionField
-import org.moqui.impl.StupidJavaUtilities
 
 class DynamoDBConditionField extends ConditionField {
 
