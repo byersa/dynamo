@@ -96,12 +96,15 @@ class DynamoDBEntityValue extends EntityValueBase {
         }
     }
 
+    public void getCreateExtended(FieldInfo [] fieldList, Connection con) {
+        createExtended(fieldList, con)
+    }
+
     @Override
-    void createExtended(FieldInfo [] fieldList, Connection con) {
-    
+    public void createExtended(FieldInfo [] fieldList, Connection con) {
         EntityDefinition entityDefinition = getEntityDefinition()
         logger.info("In DynamoDBEntityValue.create, fieldList: ${fieldList}")
-        if (entityDefinition.isViewEntity()) throw new EntityException("Create not yet implemented for view-entity")
+        if (entityDefinition.isViewEntity) throw new EntityException("Create not yet implemented for view-entity")
 
         AmazonDynamoDBClient client = ddf.getDynamoDBClient()
         DynamoDB dynamoDB = ddf.getDatabase()
@@ -136,16 +139,81 @@ class DynamoDBEntityValue extends EntityValueBase {
     }
 
     @Override
-    void updateExtended(FieldInfo [] pkFieldList, FieldInfo [] nonPkFieldList, Connection con) {
+    public void updateExtended(FieldInfo [] pkFieldList, FieldInfo [] nonPkFieldList, Connection con) {
     
-        List <String> fieldList = new ArrayList(nonPkFieldList)
-        //ListOrderedSet newLOS = new ListOrderedSet(nonPkFieldList)
+        List <FieldInfo> fieldList = new ArrayList()
+        fieldList.addAll(nonPkFieldList)
+        //Lisin-map="ec.web.parameters"tOrderedSet newLOS = new ListOrderedSet(nonPkFieldList)
         fieldList.addAll(pkFieldList)
         logger.info("DynamoDBEntityValue.updateExtended, fieldList: ${fieldList}")
-        this.createExtended(fieldList, con)
+
+        EntityDefinition entityDefinition = getEntityDefinition()
+        logger.info("In DynamoDBEntityValue.create, fieldList: ${fieldList}")
+        if (entityDefinition.isViewEntity) throw new EntityException("Create not yet implemented for view-entity")
+
+        AmazonDynamoDBClient client = ddf.getDynamoDBClient()
+        DynamoDB dynamoDB = ddf.getDatabase()
+        try {
+            String tableName = entityDefinition.getFullEntityName()
+            Table table = dynamoDB.getTable(tableName)
+            logger.info("In DynamoDBEntityValue.create, table: ${table}")
+            Map<String, Object> valueMap = this.getValueMap()
+            logger.info("In DynamoDBEntityValue.create, valueMap: ${valueMap}")
+            Item item = Item.fromMap(valueMap)
+            PutItemSpec putItemSpec = new PutItemSpec().withItem(item)
+            PutItemOutcome putItemOutcome = table.putItem(putItemSpec)
+            logger.info("In DynamoDBEntityValue.create, putItemOutcome: ${putItemOutcome}")
+            //this.buildAttributeValueMap(item, valueMap);
+            //logger.info("In DynamoDBEntityValue.create, item: ${item}")
+            //PutItemRequest putItemRequest = new PutItemRequest().withTableName(entityDefinition.getFullEntityName()).withItem(item);
+            //PutItemResult result = client.putItem(putItemRequest)     
+        } catch(ProvisionedThroughputExceededException e1) {
+            throw new EntityException(e1.getMessage())
+        } catch(ConditionalCheckFailedException e2) {
+            throw new EntityException(e2.getMessage())
+        } catch(InternalServerErrorException e3) {
+            throw new EntityException(e3.getMessage())
+        } catch(ResourceNotFoundException e4) {
+            throw new EntityException(e4.getMessage())
+        } catch(AmazonClientException e5) {
+            throw new EntityException(e5.getMessage())
+        } catch(AmazonServiceException e6) {
+            throw new EntityException(e6.getMessage())
+        }finally {
+        }
+
+//   logger.info("Reflection:")
+//   logger.info ("\tClass Name: ${this.getClass().getName()}")
+//   def methods = this.getClass().getDeclaredMethods()
+//   def methodsNames = new StringBuilder()
+//   def createExtendedMethod
+//   methods.each
+//   {
+//      methodsNames << it.getName() << " "
+//      if (it.getName() == "createExtended") {
+//           logger.info( "\tcreateExtended method(1): ${it}")
+//           createExtendedMethod = it
+//      }
+//   }
+//   logger.info( "\tMethods Names: ${methodsNames}")
+//   def fields = this.getClass().getDeclaredFields()
+//   def fieldsNames = new StringBuilder()
+//   fields.each
+//   {
+//      fieldsNames << it.getName() << " "
+//   }
+//   logger.info( "\tFields Names: ${fieldsNames}")
+//   Class [] paramTypes = createExtendedMethod.getParameterTypes()
+//   paramTypes.each {
+//       logger.info("Parameter type: ${it.getName()}")
+//   }
+//   //createExtendedMethod.invoke(this, fieldList, con)
+//
+//        this.createExtended(fieldList, con)
+
 //        DynamoDBEntityValue entValue = null
 //        logger.info("DynamoDBEntityValue.updateExtended (111), this: ${this.toString()}")
-//        EntityDefinition ed = getEntityDefinition() //        if (ed.isViewEntity()) throw new EntityException("Update not yet implemented for view-entity")
+//        EntityDefinition ed = getEntityDefinition() //        if (ed.isViewEntity) throw new EntityException("Update not yet implemented for view-entity")
 //
 //            Map<String, AttributeValue> valueMap = this.getValueMap()
 //        logger.info("DynamoDBEntityValue.updateExtended, valueMap: ${valueMap}")
@@ -207,7 +275,7 @@ class DynamoDBEntityValue extends EntityValueBase {
     @Override
     void deleteExtended(Connection con) {
         EntityDefinition entityDefinition = getEntityDefinition()
-        if (entityDefinition.isViewEntity()) throw new EntityException("Update not yet implemented for view-entity")
+        if (entityDefinition.isViewEntity) throw new EntityException("Update not yet implemented for view-entity")
 
             Map<String, AttributeValue> valueMap = this.getValueMap()
         logger.info("DynamoDBEntityFind.one (73), simpleAndMap: ${valueMap}")

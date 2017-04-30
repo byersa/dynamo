@@ -102,10 +102,13 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
          
          Map <String, String> retVal
                         logger.info("DynamoDBMapCondition, getDynamoDBIndexValue, ed.entityNode: ${ed.entityNode}")
-                for (MNode indexNode in ed.entityNode."index") {
+                List <String> fieldNames = ed.getFieldNames(true, true)
+                ArrayList <MNode> indexList = ed.entityNode.children("index")
+                for (MNode indexNode in indexList) {
                         logger.info("DynamoDBMapCondition, getDynamoDBIndexValue, indexNode: ${indexNode}")
                     String indexFieldName
-                    for (MNode indexFieldNode in indexNode."index-field") {
+                    ArrayList <MNode> indexFieldList = indexNode.children("index")
+                    for (MNode indexFieldNode in indexFieldList) {
                         indexFieldName = indexFieldNode."@name"
                         logger.info("DynamoDBMapCondition, getDynamoDBIndexValue, indexFieldName: ${indexFieldName}")
                         if( this.fieldMap[indexFieldName]) {

@@ -107,7 +107,7 @@ class DynamoDBEntityFindBase implements EntityFind {
     EntityFind condition(Map<String, ?> fields) {
         if (!fields) return this
         if (!this.simpleAndMap) this.simpleAndMap = new HashMap()
-        getEntityDef().setFields(fields, this.simpleAndMap, true, null, null)
+        getEntityDef().entityInfo.setFields(fields, this.simpleAndMap, true, null, null)
     logger.info("DynamoDBEntityFindBase(102), condition, simplAndMap: ${simpleAndMap}")
         return this
     }
