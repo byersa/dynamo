@@ -105,16 +105,17 @@ class DynamoDBMapCondition extends DynamoDBEntityConditionImplBase {
                 List <String> fieldNames = ed.getFieldNames(true, true)
                 ArrayList <MNode> indexList = ed.entityNode.children("index")
                 for (MNode indexNode in indexList) {
-                        logger.info("DynamoDBMapCondition, getDynamoDBIndexValue, indexNode: ${indexNode}")
+                    logger.info("DynamoDBMapCondition, getDynamoDBIndexValue, indexNode: ${indexNode}")
+                    String indexName = indexNode.attribute("name")
                     String indexFieldName
-                    ArrayList <MNode> indexFieldList = indexNode.children("index")
+                    ArrayList <MNode> indexFieldList = indexNode.children("index-field")
                     for (MNode indexFieldNode in indexFieldList) {
-                        indexFieldName = indexFieldNode."@name"
+                        indexFieldName = indexFieldNode.attribute("name")
                         logger.info("DynamoDBMapCondition, getDynamoDBIndexValue, indexFieldName: ${indexFieldName}")
                         if( this.fieldMap[indexFieldName]) {
                             retVal = new HashMap()
                             // indexNode."@name" has the secondary index name that DynamoDB knows
-                            retVal.put("indexName", indexNode."@name")
+                            retVal.put("indexName", indexName)
                             retVal.put("indexFieldName", indexFieldName)
                             retVal.put("indexFieldValue", this.fieldMap[indexFieldName])
                             break

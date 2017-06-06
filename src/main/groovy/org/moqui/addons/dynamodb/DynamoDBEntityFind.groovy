@@ -319,7 +319,7 @@ class DynamoDBEntityFind extends DynamoDBEntityFindBase {
                 logger.info("DynamoDBEntityFind.queryIndex index: ${index}")
                 String exp = indexValMap.indexFieldName + " = :" + indexValMap.indexFieldName
                 List<String> fieldNameList = new ArrayList<String>()
-                ed.getAllFieldNames(false).each {fldName ->
+                ed.getFieldNames(true, true).each {fldName ->
                     fieldNameList.add(fldName)
                 }
                 logger.info("DynamoDBEntityFind.queryIndex fieldNameList: ${fieldNameList}")
