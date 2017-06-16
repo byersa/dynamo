@@ -236,7 +236,7 @@ class DynamoDBDatasourceFactory implements EntityDatasourceFactory {
                 //ArrayList <MNode> = ed.entityNode.children("index")
                 for (MNode indexNode in indexList) {
                   
-                    ArrayList <MNode> indexFieldList = indexNode.children("index")
+                    ArrayList <MNode> indexFieldList = indexNode.children("index-field")
                     for (MNode indexFieldNode in indexFieldList) {
                         indexFieldName = indexFieldNode.attribute("name")
                         projectionAttrVal= indexFieldNode.attribute("projection")
