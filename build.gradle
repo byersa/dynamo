@@ -50,7 +50,7 @@ repositories {
     flatDir name: 'frameworklib', dirs: frameworkDir.absolutePath + '/lib'
     //flatDir name: 'camellib', dirs: frameworkDir.absolutePath + '/lib/camel'
     //flatDir name: 'searchlib', dirs: frameworkDir.absolutePath + '/lib/search'
-    flatDir name: 'moquiLib', dirs: frameworkDir.absolutePath + '/build/libs'
+    flatDir name: 'moquiLib', dirs: frameworkDir.absolutePath + '/moqui-util/build/libs'
     flatDir name: 'moquiUtilLib', dirs: moquiUtilDir.absolutePath + '/build/libs'
     flatDir name: 'locallib', dirs: projectDir.absolutePath + '/lib'
     jcenter() // http://jcenter.bintray.com
@@ -61,10 +61,14 @@ sourceSets {
 }
 
 dependencies {
+    compile project(":moqui-util")
     compile project(":framework")
-    compile name: 'aws-java-sdk', version: '1.11.26'
+    compile name: 'aws-java-sdk', version: '1.11.313'
     compile name: 'moqui-util', version: '1.0.1'
     compile name: 'joda-time', version: '2.9.9'
+    compile name: 'jackson-core', version: '2.9.5'
+    compile name: 'jackson-databind', version: '2.9.5'
+    compile name: 'jackson-annotations', version: '2.9.5'
 //    apiCompile 'org.codehaus.groovy:groovy-all:2.4.6' // Apache 2.0
 //    compile 'org.codehaus.groovy:groovy-all:2.4.6' // Apache 2.0
 //
